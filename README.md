@@ -1,4 +1,4 @@
-APMIDG: Argo Power Management Glur Layer for Intel Discrete GPUs
+APMIDG: Argo Power Management Glue Layer for Intel Discrete GPUs
 
 
 Requirements:
