@@ -1,0 +1,20 @@
+var searchData=
+[
+  ['apmidg_5ffinish_19',['apmidg_finish',['../libapmidg_8h.html#a282595634feecf3d2726db947ae128f7',1,'libapmidg.h']]],
+  ['apmidg_5fgetfreqlims_20',['apmidg_getfreqlims',['../libapmidg_8h.html#a103e0e1ec5364594239cbd085a1938a0',1,'libapmidg.h']]],
+  ['apmidg_5fgetfreqprops_21',['apmidg_getfreqprops',['../libapmidg_8h.html#a73cdcdb076b20e30830592996c49d35b',1,'libapmidg.h']]],
+  ['apmidg_5fgetndevs_22',['apmidg_getndevs',['../libapmidg_8h.html#a74f175d7362d7e0ca8c81e05b27c655e',1,'libapmidg.h']]],
+  ['apmidg_5fgetnfreqdoms_23',['apmidg_getnfreqdoms',['../libapmidg_8h.html#a65fb11438dd42cf06621907a65807dc2',1,'libapmidg.h']]],
+  ['apmidg_5fgetnpwrdoms_24',['apmidg_getnpwrdoms',['../libapmidg_8h.html#aada4df07912293affc536002eedc6403',1,'libapmidg.h']]],
+  ['apmidg_5fgetntempsensors_25',['apmidg_getntempsensors',['../libapmidg_8h.html#a3452a78eda8a65308ddaeb4674b9352a',1,'libapmidg.h']]],
+  ['apmidg_5fgetpwrlim_26',['apmidg_getpwrlim',['../libapmidg_8h.html#a964eb5bda2fa34df02dc4c4180893109',1,'libapmidg.h']]],
+  ['apmidg_5fgetpwrprops_27',['apmidg_getpwrprops',['../libapmidg_8h.html#ad5a9783849344ab3a93023679c450810',1,'libapmidg.h']]],
+  ['apmidg_5fgettempprops_28',['apmidg_gettempprops',['../libapmidg_8h.html#a5ea41aefe8b8169e4d4fa1318cf71546',1,'libapmidg.h']]],
+  ['apmidg_5finit_29',['apmidg_init',['../libapmidg_8h.html#abf58c78b4c16d36f1f20c7910c6465a7',1,'libapmidg.h']]],
+  ['apmidg_5freadenergy_30',['apmidg_readenergy',['../libapmidg_8h.html#abc4f73fa5c0d3ca222c7b01db8d2aaaf',1,'libapmidg.h']]],
+  ['apmidg_5freadfreq_31',['apmidg_readfreq',['../libapmidg_8h.html#ae11f2a86d7a708e6ad1f9592fc378c30',1,'libapmidg.h']]],
+  ['apmidg_5freadtemp_32',['apmidg_readtemp',['../libapmidg_8h.html#afc3382e11f8b5a1cf1ad93408c5d214c',1,'libapmidg.h']]],
+  ['apmidg_5fsensortype_5fstr_33',['apmidg_sensortype_str',['../libapmidg_8h.html#ab5d16c3f827ff5fa4561460e9581e9fe',1,'libapmidg.h']]],
+  ['apmidg_5fsetfreqlims_34',['apmidg_setfreqlims',['../libapmidg_8h.html#a97b17208820c077b16518da1c3a1fcda',1,'libapmidg.h']]],
+  ['apmidg_5fsetpwrlim_35',['apmidg_setpwrlim',['../libapmidg_8h.html#acf05f1f97b4e2158845b2244e4a972b0',1,'libapmidg.h']]]
+];
