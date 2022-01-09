@@ -1,6 +1,5 @@
 APMIDG: Argo Power Management Glue Layer for Intel Discrete GPUs
 
-
 Requirements:
 - Intel Discrete GPUs
 - oneAPI runtime environment (level_zero.so)
@@ -30,10 +29,6 @@ To run test codes
 	python clr_apmidg.py
 
 
-Documentations
---------------
-
-The apmidg API document can be found at [a relative link](html/libapmidg_8h.html).
 
 --
 Technical contact: Kazutomo Yoshii <kazutomo@mcs.anl.gov>
