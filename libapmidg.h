@@ -8,12 +8,12 @@
  * @file libapmidg.h
  * @author Kazutomo Yoshii <kazutomo@mcs.anl.gov>
  * @date Sep 20, 2021
- * @brief A simple but suffieit C APIs for Intel discrete GPUs power management
+ * @brief A simple but sufficient C APIs for Intel discrete GPUs power management
  *
- * This library is internally implemented in C++, which is more
- * flexible than the functionality defined in this header
- * file. However, C APIs are convenient or mandatory for many
- * situations.
+ * While this library is internally implemented in C++, C APIs are
+ * convenient or mandatory for many situations. The native C++ API
+ * offers more flexibility than the functionality defined in this C
+ * header.
  */
 
 #ifndef __LIBIDGPUPOWER_H_DEFINED__

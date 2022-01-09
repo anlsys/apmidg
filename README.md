@@ -30,5 +30,10 @@ To run test codes
 	python clr_apmidg.py
 
 
+Documentations
+--------------
+
+The apmidg API document can be found at [a relative link](html/libapmidg_8h.html).
+
 --
 Technical contact: Kazutomo Yoshii <kazutomo@mcs.anl.gov>
