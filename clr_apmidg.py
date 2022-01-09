@@ -48,7 +48,13 @@ class rtype_gettempprops:
 
 
 class clr_apmidg:
-    """
+    """The clr_apmidg class provides APIs for reading energy/power
+    consumption and temperatures and controlling hardware power
+    capping on Intel discrete GPUs via the apmidg library that
+    communicates with Intel GPUs via Intel Level Zero API.
+
+    The function basictest() and monitor() below are an example of
+    this class.
     """
 
     def __init__(self):
