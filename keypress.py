@@ -28,7 +28,7 @@ class keypress:
             tty.setcbreak(sys.stdin.fileno())
             self.enabled = True
         except:
-            print 'Failed to enable'
+            print('Failed to enable')
 
     def disable(self):
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     i = 0
     while 1:
-        print i
+        print(i)
         i += 1
         if kp.available():
             c = kp.readkey()
