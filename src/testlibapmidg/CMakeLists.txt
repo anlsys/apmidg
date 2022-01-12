@@ -4,7 +4,7 @@ project( ${PROJECT_NAME} VERSION ${PROJECT_VERSION} DESCRIPTION "libapmidg" LANG
 set(TESTSRC "testlibapmidg.c")
 
 
-message(STATUS "Use ${libapmidg}")
+#message(STATUS "Use ${libapmidg}")
 
 add_executable(testapmidg ${TESTSRC})
 
@@ -22,3 +22,4 @@ install(TARGETS testapmidg
         RUNTIME DESTINATION bin
 	DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+install(PROGRAMS testapmidg.sh DESTINATION bin)
