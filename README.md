@@ -2,19 +2,18 @@ APMIDG: Argo Power Management Glue Layer for Intel Discrete GPUs
 
 Requirements:
 - Intel Discrete GPUs
-- oneAPI runtime environment (level_zero.so)
-
+- oneAPI environment (header files and shared libraries)
+- cmake 3.9 or later
 
 To build shared libraries and testcodes
 ---------------------------------------
 
-	First, you need to set up Intel oneAPI environment
-	$ module load oneapi
-	or 
-	$ source $ONEAPIAPTH/setvars.sh
-
-	Then, type
+	$ mkdir build && cd build
+	$ cmake -DCMAKE_INSTALL_PREFIX:PATH=__LIBAPMIDG_INSTALL_PATH__ ..
 	$ make
+	$ pip install .
+
+	NOTE: please replace __LIBAPMIDG_INSTALL_PATH__ with your preferred path.
 
 To run test codes
 -----------------
