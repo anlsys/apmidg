@@ -10,5 +10,6 @@ set(BIN_DIR "${CMAKE_SOURCE_DIR}/bin/${PLATFORM_DIR}/${BUILD_TYPE_DIR}")
 
 add_subdirectory("src/libapmidg")
 add_subdirectory("src/testlibapmidg")
+add_subdirectory("src/pyapmidg")
 
 

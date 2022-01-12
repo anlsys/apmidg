@@ -4,7 +4,7 @@ project( ${PROJECT_NAME} VERSION ${PROJECT_VERSION} DESCRIPTION "libapmidg" LANG
 set(TESTSRC "testlibapmidg.c")
 
 
-#message(STATUS "Use ${libapmidg}")
+#message(STATUS "Use ${apmidg}")
 
 add_executable(testapmidg ${TESTSRC})
 
@@ -16,7 +16,7 @@ include_directories( "../libapmidg/" )
 
 set(CMAKE_EXE_LINKER_FLAGS "-lze_loader -lstdc++")
 
-target_link_libraries(testapmidg libapmidg)
+target_link_libraries(testapmidg apmidg)
 
 install(TARGETS testapmidg
         RUNTIME DESTINATION bin

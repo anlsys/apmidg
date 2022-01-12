@@ -1,0 +1,4 @@
+set(PY_INSTALL_PATH ${CMAKE_INSTALL_PREFIX}/pyapmidg)
+
+install(FILES pyapmidg.py DESTINATION ${PY_INSTALL_PATH})
+install(FILES keypress.py DESTINATION ${PY_INSTALL_PATH})
