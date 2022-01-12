@@ -116,10 +116,10 @@ class clr_apmidg:
     # Power domain
     #
 
-    def getnpwrdoms(self, devid):
+    def getnpwrdoms(self, devid=0):
         return self.apm.apmidg_getnpwrdoms(devid)
 
-    def getpwrprops(self, devid, pwrid):
+    def getpwrprops(self, devid=0, pwrid=0):
         onsubdev = c_int()
         subdevid = c_int()
         canctrl = c_int()
@@ -130,7 +130,7 @@ class clr_apmidg:
         self.func_getpwrprops(devid, pwrid, byref(onsubdev), byref(subdevid), byref(canctrl), byref(deflim_mw), byref(minlim_mw), byref(maxlim_mw))
         return rtype_getpwrprops(onsubdev, subdevid, canctrl, deflim_mw, minlim_mw, maxlim_mw)
 
-    def getpwrlim(self, devid, pwrid):
+    def getpwrlim(self, devid=0, pwrid=0):
         lim_mw = c_int()
         self.func_getpwrlim(devid, pwrid, byref(lim_mw))
         return lim_mw.value
@@ -138,7 +138,7 @@ class clr_apmidg:
     def setpwrlim(self, devid, pwrid, lim_mw):
         self.apm.apmidg_setpwrlim(devid, pwrid, lim_mw)
 
-    def readenergy(self, devid, pwrid):
+    def readenergy(self, devid=0, pwrid=0):
         energy_uj = c_ulonglong()
         ts_usec = c_ulonglong()
         self.func_readenergy(devid, pwrid, byref(energy_uj), byref(ts_usec))
@@ -147,7 +147,7 @@ class clr_apmidg:
     def diffenergy(self, prev_energy, cur_energy):
         return (cur_energy.energy_uj - prev_energy.energy_uj)/(cur_energy.ts_usec - prev_energy.ts_usec)
 
-    def readpoweravg(self, devid, pwrid):
+    def readpoweravg(self, devid=0, pwrid=0):
         cur_e = self.readenergy(devid, pwrid)
         p = self.diffenergy(self.prev_e[devid][pwrid], cur_e)
         self.prev_e[devid][pwrid] = cur_e
@@ -233,6 +233,8 @@ class clr_apmidg:
                 #flims = pm.getfreqlims(devid, pwrid)
                 #print("devid%d/freqid%d: current min_MHz=%d, max_MHz=%d" % (devid, freqid, flims.min_MHz, flims.max_MHz))
 
+
+                
 def basictest(pm, ndevs):
     print("Basic tests")
     for devid in range(0, ndevs):
@@ -276,71 +278,8 @@ def basictest(pm, ndevs):
 
     print("")
 
-
-def monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0):
-    print("")
-    print("Test monitoring")
-
-    kp = keypress.keypress()
-    kp.enable()
-    starttime = time.time()
-
-    devnpwrdoms = []
-    devnfreqdoms = []
-    devntempsensors = []
-    for devid in range(0, ndevs):
-        devnpwrdoms.append(pm.getnpwrdoms(devid))
-        devnfreqdoms.append(pm.getnfreqdoms(devid))
-        devntempsensors.append(pm.getntempsensors(devid))
-
-    for devid in range(0, ndevs):
-        for pwrid in range(0, devnpwrdoms[devid]):
-            if (powercap_W > 0):
-                pm.setpwrlim(devid, pwrid, powercap_W*1000)
-        for freqid in range(0, devnfreqdoms[devid]):
-            if (maxreq_MHz > 0.0):
-                flims = pm.getfreqlims(devid, freqid)
-                flims.max_MHz = maxreq_MHz
-                pm.setfreqlims(devid, freqid, flims.min_MHz, flims.max_MHz)
-
-    with open(fn, 'w') as f:
-        while True:
-            # read all sensors
-            curt = time.time()
-            s = "%lf  " % (curt - starttime)
-            for devid in range(0, ndevs):
-                for pwrid in range(0, devnpwrdoms[devid]):
-                    plim = pm.getpwrlim(devid, pwrid)/1000.
-                    s += "%.1lf " % plim
-                    ptmp = pm.readpoweravg(devid, pwrid)
-                    s += "%.1lf " % ptmp
-                s += " "
-                for freqid in range(0, devnfreqdoms[devid]):
-                    flims = pm.getfreqlims(devid, freqid)
-                    s += "%d " % (int(flims.max_MHz))
-                    ftmp = pm.readfreq(devid, freqid)
-                    s += "%d " % int(ftmp)
-                s += " "
-                for tempid in range(0, devntempsensors[devid]):
-                    ttmp = pm.readtemp(devid, tempid)
-                    s += "%.1lf " % ttmp
-                s += "   "
-            f.write(s + "\n")
-            print(s)
-            if kp.readkey() == 'q':
-                break
-            time.sleep(.5)
-    kp.disable()
-
 if __name__ == '__main__':
     pm = clr_apmidg()
     ndevs = pm.getndevs()
 
     basictest(pm, ndevs)
-
-    monitor(pm, ndevs, 'output_clr_apmidg.txt', 0, 0.0)
-
-    print("reset setting")
-    pm.reset2default()
-
-    print("done")
