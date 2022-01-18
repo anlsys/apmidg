@@ -10,12 +10,12 @@ import keypress
 
 def read_boardpower_arcticus():
     watt = 0
-    p = Popen('sudo ipmi-sensors --comma-separated-output -r 23', stdout = PIPE, stderr = STDOUT, shell = True)
+    p = Popen('sudo ipmi-sensors --comma-separated-output -r 22,23', stdout = PIPE, stderr = STDOUT, shell = True)
     for l in p.stdout:
         res = l.decode().split(',')
         if len(res) > 5:
             if (res[1].find('Input Power') > 0) :
-                watt = float(res[3])
+                watt = watt + float(res[3])
     return watt
 
 def monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0):

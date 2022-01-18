@@ -219,17 +219,17 @@ class clr_apmidg:
 
     def reset2default(self):
         for devid in range(0, self.ndevs):
-            npwrdoms = pm.getnpwrdoms(devid)
-            nfreqdoms = pm.getnfreqdoms(devid)
+            npwrdoms = self.getnpwrdoms(devid)
+            nfreqdoms = self.getnfreqdoms(devid)
             for pwrid in range(0, npwrdoms):
-                pwrprops = pm.getpwrprops(devid, pwrid)
+                pwrprops = self.getpwrprops(devid, pwrid)
                 self.setpwrlim(devid, pwrid, pwrprops.deflim_mw)
-                curpwrlim_mw = pm.getpwrlim(devid, pwrid)
+                curpwrlim_mw = self.getpwrlim(devid, pwrid)
                 # print("devid%d/pwrdid%d: deflim_mw=%d curpwrlim_mw=%d" % (devid, pwrid, pwrprops.deflim_mw, curpwrlim_mw))
             for freqid in range(0, nfreqdoms):
-                fp = pm.getfreqprops(devid, pwrid)
+                fp = self.getfreqprops(devid, pwrid)
                 #print("devid%d/freqid%d: onsubdev=%d, subdevid=%d, canctrl=%d, min_MHz=%d, max_MHz=%d" % (devid, freqid, fp.onsubdev, fp.subdevid, fp.canctrl, fp.min_MHz, fp.max_MHz))
-                pm.setfreqlims(devid, pwrid, fp.min_MHz, fp.max_MHz)
+                self.setfreqlims(devid, pwrid, fp.min_MHz, fp.max_MHz)
                 #flims = pm.getfreqlims(devid, pwrid)
                 #print("devid%d/freqid%d: current min_MHz=%d, max_MHz=%d" % (devid, freqid, flims.min_MHz, flims.max_MHz))
 
