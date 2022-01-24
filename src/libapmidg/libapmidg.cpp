@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <vector>
+#include <mutex>
 
 #include <stdint.h>
 #include <string.h>
@@ -216,20 +217,32 @@ public:
     }
 };
 
-static IDGPower *apmidg;
+static IDGPower *apmidg = NULL;
+static std::mutex apmidg_mutex;
 
 #define EXTERNC extern "C"
 
 EXTERNC int apmidg_getndevs() {
+    if (!apmidg) return -1;
     return apmidg->getndevs();
 }
 
 EXTERNC int apmidg_getnpwrdoms(int devid) {
+    if (!apmidg) return -1;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     return perdev.getnpwrdoms();
 }
 
 EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdevid, int *canctrl, int *deflim_mw, int *minlim_mw, int *maxlim_mw) {
+
+    if (onsubdev) *onsubdev = -1;
+    if (subdevid) *subdevid = -1;
+    if (canctrl)  *canctrl = -1;
+    if (deflim_mw) *deflim_mw = -1;
+    if (minlim_mw) *minlim_mw = -1;
+    if (maxlim_mw) *maxlim_mw = -1;
+
+    if (!apmidg) return;
 
     ze_result_t res;
     zes_power_properties_t pprop;
@@ -249,6 +262,9 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
 }
 
 EXTERNC void apmidg_getpwrlim(int devid, int pwrid, int *lim_mw) {// sustained only
+    if (lim_mw) *lim_mw = -1;
+    if (!apmidg) return;
+
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
@@ -269,12 +285,15 @@ EXTERNC void apmidg_getpwrlim(int devid, int pwrid, int *lim_mw) {// sustained o
 }
 
 EXTERNC void apmidg_setpwrlim(int devid, int pwrid, int lim_mw) { // sustained only
+    if (!apmidg) return;
+
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
     zes_power_sustained_limit_t pSustained;
 
+    apmidg_mutex.lock();
     res = zesPowerGetLimits(pwrh, &pSustained, NULL, NULL);
     if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimits", res);
 
@@ -282,9 +301,14 @@ EXTERNC void apmidg_setpwrlim(int devid, int pwrid, int lim_mw) { // sustained o
 
     res = zesPowerSetLimits(pwrh, &pSustained, NULL, NULL);
     if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerSetLimits", res);
+    apmidg_mutex.unlock();
 }
 
 EXTERNC void apmidg_readenergy(int devid, int pwrid, uint64_t *energy_uj, uint64_t *ts_us) {
+    if (energy_uj)  *energy_uj = -1;
+    if (ts_us) *ts_us = -1;
+    if (!apmidg) return;
+
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
@@ -296,9 +320,15 @@ EXTERNC void apmidg_readenergy(int devid, int pwrid, uint64_t *energy_uj, uint64
     if (ts_us) *ts_us = ecounter.timestamp;
 }
 
+EXTERNC void apmidg_readpower(int devid, int pwrid) {
+    apmidg_mutex.lock();
+    apmidg_mutex.unlock();
+}
 
 
 EXTERNC int apmidg_getnfreqdoms(int devid) {
+    if (!apmidg) return -1;
+
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     return perdev.getnfreqdoms();
 }
@@ -308,6 +338,13 @@ EXTERNC void apmidg_getfreqprops(int devid, int freqid, int *onsubdev,
 				int *subdevid, int *canctrl,
 				 double *min_MHz, double *max_MHz)
 {
+    if (onsubdev) *onsubdev = -1;
+    if (subdevid) *subdevid = -1;
+    if (canctrl)  *canctrl = -1;
+    if (min_MHz) *min_MHz = -1.0;
+    if (max_MHz) *max_MHz = -1.0;
+    if (!apmidg) return;
+
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_freq_handle_t freqh = perdev.getfreqh(freqid);
@@ -325,6 +362,11 @@ EXTERNC void apmidg_getfreqprops(int devid, int freqid, int *onsubdev,
 
 EXTERNC void apmidg_getfreqlims(int devid, int freqid,
 				 double *min_MHz, double *max_MHz) {
+    if (min_MHz) *min_MHz = -1.0;
+    if (max_MHz) *max_MHz = -1.0;
+
+    if (!apmidg) return;
+
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_freq_handle_t freqh = perdev.getfreqh(freqid);
@@ -339,6 +381,8 @@ EXTERNC void apmidg_getfreqlims(int devid, int freqid,
 
 EXTERNC void apmidg_setfreqlims(int devid, int freqid,
 				 double min_MHz, double max_MHz) {
+    if (!apmidg) return;
+
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_freq_handle_t freqh = perdev.getfreqh(freqid);
@@ -347,12 +391,17 @@ EXTERNC void apmidg_setfreqlims(int devid, int freqid,
     frange.min = min_MHz;
     frange.max = max_MHz;
 
+    apmidg_mutex.lock();
     res = zesFrequencySetRange(freqh, &frange);
     if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesFrequencySetRange", res);
+    apmidg_mutex.unlock();
 
 }
 
 EXTERNC void apmidg_readfreq(int devid, int freqid, double *actual_MHz) {
+    if (actual_MHz) *actual_MHz = -1.0;
+    if (!apmidg) return;
+
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_freq_handle_t freqh = perdev.getfreqh(freqid);
@@ -366,12 +415,20 @@ EXTERNC void apmidg_readfreq(int devid, int freqid, double *actual_MHz) {
 
 
 EXTERNC int apmidg_getntempsensors(int devid) {
+    if (!apmidg) return -1;
+
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     return perdev.getntempsensors();
 }
 
 EXTERNC void apmidg_gettempprops(int devid, int tempid, int *onsubdev,
 				 int *subdevid,  int *type) {
+    if (onsubdev) *onsubdev = -1;
+    if (subdevid) *subdevid = -1;
+    if (type) *type = -1;
+
+    if (!apmidg) return;
+
     ze_result_t res;
 
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
@@ -398,21 +455,24 @@ EXTERNC const char* apmidg_sensortype_str(int type)
 
 
 EXTERNC void apmidg_readtemp(int devid, int tempid, double *temp_C) {
+    if (temp_C) *temp_C = -1.0;
+    if (!apmidg) return;
+
     ze_result_t res;
 
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_temp_handle_t temph = perdev.gettemph(tempid);
 
-    res = zesTemperatureGetState(temph, temp_C);
-    if (res != ZE_RESULT_SUCCESS) _ZE_ERROR_MSG_NOTERMINATE("zesTemperatureGetState", res);
+    if (temp_C) {
+	res = zesTemperatureGetState(temph, temp_C);
+	if (res != ZE_RESULT_SUCCESS) _ZE_ERROR_MSG_NOTERMINATE("zesTemperatureGetState", res);
+    }
 }
-
-
-
 
 
 EXTERNC int apmidg_init()
 {
+    apmidg = NULL;
     const char *e = getenv("ZES_ENABLE_SYSMAN");
     if (!(e && e[0] == '1'))  {
 	std::cout << "Error: please set ZES_ENABLE_SYSMAN to 1" << std::endl;
@@ -430,4 +490,5 @@ EXTERNC int apmidg_init()
 EXTERNC void apmidg_finish()
 {
     if (apmidg)   delete apmidg;
+    apmidg = NULL;
 }
