@@ -157,10 +157,10 @@ class clr_apmidg:
     # Frequency domain
     #
 
-    def getnfreqdoms(self, devid):
+    def getnfreqdoms(self, devid=0):
         return self.apm.apmidg_getnfreqdoms(devid)
 
-    def getfreqprops(self, devid, freqid):
+    def getfreqprops(self, devid=0, freqid=0):
         onsubdev = c_int()
         subdevid = c_int()
         canctrl = c_int()
@@ -170,7 +170,7 @@ class clr_apmidg:
         self.func_getfreqprops(devid, freqid, byref(onsubdev), byref(subdevid), byref(canctrl), byref(min_MHz), byref(max_MHz))
         return rtype_getfreqprops(onsubdev, subdevid, canctrl,min_MHz, max_MHz)
 
-    def getfreqlims(self, devid, freqid):
+    def getfreqlims(self, devid=0, freqid=0):
         min_MHz = c_double()
         max_MHz = c_double()
 
@@ -180,7 +180,7 @@ class clr_apmidg:
     def setfreqlims(self, devid, freqid, min_MHz, max_MHz):
         self.func_setfreqlims(devid, freqid, min_MHz, max_MHz)
 
-    def readfreq(self, devid, freqid):
+    def readfreq(self, devid=0, freqid=0):
         actual_MHz = c_double()
         self.func_readfreq(devid, freqid, byref(actual_MHz))
         return actual_MHz.value
@@ -190,7 +190,7 @@ class clr_apmidg:
     # Temperature sensor
     #
 
-    def getntempsensors(self, devid):
+    def getntempsensors(self, devid=0):
         return self.apm.apmidg_getntempsensors(devid)
 
     def sensortype2str(self, typeid):
@@ -201,14 +201,14 @@ class clr_apmidg:
 
         return labels[typeid]
 
-    def gettempprops(self, devid, tempid):
+    def gettempprops(self, devid=0, tempid=0):
         onsubdev = c_int()
         subdevid = c_int()
         sensortype = c_int()
         self.func_gettempprops(devid, tempid, byref(onsubdev), byref(subdevid), byref(sensortype))
         return rtype_gettempprops(onsubdev, subdevid, sensortype)
 
-    def readtemp(self, devid, tempid):
+    def readtemp(self, devid=0, tempid=0):
         temp_C = c_double()
         self.func_readtemp(devid, tempid, byref(temp_C))
         return temp_C.value
