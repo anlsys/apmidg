@@ -1,7 +1,10 @@
+/*
+  This code demonstrates the usage of the libapmidg library functions.
+
+  Developed by Kazutomo Yoshii <kazutomo@mcs.anl.gov>
+ */
 #include "libapmidg.h"
-
 #include <stdio.h>
-
 
 int main()
 {
@@ -10,19 +13,26 @@ int main()
 	return 1;
     }
 
+    // obtains the number of GPUs in this node
     int ndevs = apmidg_getndevs();
     printf("ndevs=%d\n", ndevs);
 
-    // detection and check functionality
+    // iterates all GPUs
     for (int di=0; di<ndevs; di++) {
+	// obtains the number of the power domains
 	int npwrdoms = apmidg_getnpwrdoms(di);
+	// obtains the number of the frequency domains
 	int nfreqdoms = apmidg_getnfreqdoms(di);
+	// obtains the number of the temperature sensors
 	int ntempsensors = apmidg_getntempsensors(di);
 
 	printf("dev%d: npwrdoms=%d nfreqdoms=%d\n", di,
 	       npwrdoms, nfreqdoms);
+
+	// iterates all power domains
 	for (int pi=0; pi<npwrdoms; pi++) {
-	    int onsubdev, subdevid, canctrl, deflim_mw; // minlim_mw, maxlim_mw
+	    // onsubdev indicates the current domain on the sub device
+	    int onsubdev, subdevid, canctrl, deflim_mw;
 	    int curlim_mw; // current limit
 
 	    apmidg_getpwrprops(di, pi, &onsubdev, &subdevid,
