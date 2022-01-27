@@ -31,6 +31,7 @@ class IDGPowerPerDevice {
     ze_device_handle_t dev;
     zes_device_handle_t smh; // sysman handles
     std::vector<zes_pwr_handle_t> pwrhs;
+    std::vector<uint64_t> prev_energy_uj;
     std::vector<zes_freq_handle_t> freqhs;
     std::vector<zes_temp_handle_t> temphs;
 
@@ -472,11 +473,14 @@ EXTERNC void apmidg_readtemp(int devid, int tempid, double *temp_C) {
 
 EXTERNC int apmidg_init()
 {
-    apmidg = NULL;
     const char *e = getenv("ZES_ENABLE_SYSMAN");
     if (!(e && e[0] == '1'))  {
 	std::cout << "Error: please set ZES_ENABLE_SYSMAN to 1" << std::endl;
 	exit(1);
+    }
+    if (apmidg) {
+	std::cout << "Warning: apmidg is already initialized";
+	return -1;
     }
 
     apmidg = new IDGPower(1);
