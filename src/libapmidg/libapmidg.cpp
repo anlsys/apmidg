@@ -32,7 +32,9 @@ class IDGPowerPerDevice {
     ze_device_handle_t dev;
     zes_device_handle_t smh; // sysman handles
     std::vector<zes_pwr_handle_t> pwrhs;
+    // prev_energy_uj and prev_ts_us are used to calculate poweravg
     std::vector<uint64_t> prev_energy_uj;
+    std::vector<uint64_t> prev_ts_us;
     std::vector<zes_freq_handle_t> freqhs;
     std::vector<zes_temp_handle_t> temphs;
 
@@ -64,6 +66,9 @@ public:
 	if (res != ZE_RESULT_SUCCESS) _ZE_ERROR_MSG("zesDeviceEnumPowerDomains", res);
 	if (npwrdoms > 0) {
 	    pwrhs.resize(npwrdoms);
+	    prev_energy_uj.resize(npwrdoms);
+	    prev_ts_us.resize(npwrdoms);
+
 	    res = zesDeviceEnumPowerDomains(smh, &npwrdoms, pwrhs.data());
 	    if (res != ZE_RESULT_SUCCESS) _ZE_ERROR_MSG("zesDeviceEnumPowerDomains", res);
 	}
@@ -94,9 +99,10 @@ public:
 	    std::cout << " ntempsensors=" << ntempsensors << std::endl;
 	}
 
-
 	if (verbose >= 2) std::cout << "IDGPowerPerDivice is constructed" << std::endl;
+
     }
+
     ~IDGPowerPerDevice() {
 	if (verbose >= 2) std::cout << "IDGPowerPerDevice is destructed" << std::endl;
     }
@@ -108,9 +114,27 @@ public:
 
     ze_device_handle_t getdev() {return dev; }
     zes_device_handle_t getsysmanh() {return smh; }
-    zes_pwr_handle_t getpwrh(int id) {return pwrhs[id];}
-    zes_freq_handle_t getfreqh(int id) {return freqhs[id];}
-    zes_temp_handle_t gettemph(int id) {return temphs[id];}
+    zes_pwr_handle_t getpwrh(int id) {
+	if (id >= getnpwrdoms() ) {
+		std::cout << "Warning: getpwrh(): specified id is out of the range: set it to 0" << std::endl;
+		id = 0;
+	}
+	return pwrhs[id];
+    }
+    zes_freq_handle_t getfreqh(int id) {
+	if (id >= getnfreqdoms() ) {
+		std::cout << "Warning: getfreqh(): specified id is out of the range: set it to 0" << std::endl;
+		id = 0;
+	}
+	return freqhs[id];
+    }
+    zes_temp_handle_t gettemph(int id) {
+	if (id >= getntempsensors() ) {
+		std::cout << "Warning: gettemph(): specified id is out of the range: set it to 0" << std::endl;
+		id = 0;
+	}
+	return temphs[id];
+    }
 };
 
 
