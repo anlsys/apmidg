@@ -165,7 +165,11 @@ public:
     int getndevs() { return devs.size(); }
 
     IDGPowerPerDevice getIDGPowerPerDevice(int devid) {
-	return devs[devid];
+		if (devid >= getndevs()) {
+			std::cout << "Warning: devid is out of the range. Set devid 0" << std::endl;
+			return devs[0];
+		}
+	    return devs[devid];
     }
 };
 
@@ -322,7 +326,7 @@ EXTERNC void apmidg_readenergy(int devid, int pwrid, uint64_t *energy_uj, uint64
     if (ts_us) *ts_us = ecounter.timestamp;
 }
 
-EXTERNC void apmidg_readpower(int devid, int pwrid) {
+EXTERNC void apmidg_readpoweravg(int devid, int pwrid) {
     apmidg_mutex.lock();
     apmidg_mutex.unlock();
 }

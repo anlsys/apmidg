@@ -77,6 +77,10 @@ EXTERNC void apmidg_setpwrlim(int devid, int pwrid, int lim_mw);
 EXTERNC void apmidg_readenergy(int devid, int pwrid,
 			       uint64_t *enery_uj, uint64_t *ts_usec);
 
+/**
+ * @brief Reads the average power
+ */
+EXTERNC void apmidg_readpoweravg(int devid, int pwrid);
 
 // frequency domains
 
