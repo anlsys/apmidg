@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 #include <string.h>
-
+#include <unistd.h>
 
 #define _ZE_ERROR_MSG(NAME,RES) {printf("%s() failed at %d(%s): res=%x:%s\n",(NAME),__LINE__,__FILE__,(RES),str_ze_result_t(RES)); std::terminate();}
 #define _ZE_ERROR_MSG_NOTERMINATE(NAME,RES) {printf("%s() failed at %d(%s): res=%x:%s\n",(NAME),__LINE__,__FILE__,(RES),str_ze_result_t(RES)); std::terminate();}
@@ -32,9 +32,12 @@ class IDGPowerPerDevice {
     ze_device_handle_t dev;
     zes_device_handle_t smh; // sysman handles
     std::vector<zes_pwr_handle_t> pwrhs;
-    // prev_energy_uj and prev_ts_us are used to calculate poweravg
+    // prev_energy_uj and prev_ts_us are used to calculate poweravg_w
+    // sampleenergy update these values
     std::vector<uint64_t> prev_energy_uj;
     std::vector<uint64_t> prev_ts_us;
+    std::vector<double> poweravg_w;
+
     std::vector<zes_freq_handle_t> freqhs;
     std::vector<zes_temp_handle_t> temphs;
 
@@ -71,6 +74,13 @@ public:
 
 	    res = zesDeviceEnumPowerDomains(smh, &npwrdoms, pwrhs.data());
 	    if (res != ZE_RESULT_SUCCESS) _ZE_ERROR_MSG("zesDeviceEnumPowerDomains", res);
+
+	    // to load value into prev_energy_uj and prev_ts_us to
+	    // calculate the average power consumption.
+	    zes_power_energy_counter_t ecounter;
+	    for (int i = 0; i < npwrdoms; ++i)
+		sampleenergy(i, ecounter);
+	    usleep(10*1000); // sleep 10 msec
 	}
 
 	nfreqdoms = 0;
@@ -134,6 +144,26 @@ public:
 		id = 0;
 	}
 	return temphs[id];
+    }
+
+    // return watt
+    double sampleenergy(int pwrid, zes_power_energy_counter_t& ecounter) {
+	ze_result_t res;
+	double watt = 0.0;
+
+	zes_pwr_handle_t pwrh = getpwrh(pwrid);
+
+	res = zesPowerGetEnergyCounter(pwrh, &ecounter);
+	if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetEnergyCounter", res);
+
+	double delta_us = ecounter.timestamp - prev_ts_us[pwrid];
+	double delta_uj = ecounter.energy - prev_energy_uj[pwrid];
+	if (delta_us > 0.0) watt = delta_uj/delta_us;
+
+	prev_energy_uj[pwrid] = ecounter.energy;
+	prev_ts_us[pwrid] = ecounter.timestamp;
+
+	return watt;
     }
 };
 
@@ -339,20 +369,31 @@ EXTERNC void apmidg_readenergy(int devid, int pwrid, uint64_t *energy_uj, uint64
     if (ts_us) *ts_us = -1;
     if (!apmidg) return;
 
-    ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
+    // sampleenergy
     zes_power_energy_counter_t ecounter;
-    res = zesPowerGetEnergyCounter(pwrh, &ecounter);
-    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetEnergyCounter", res);
+    perdev.sampleenergy(pwrid, ecounter);
+
     if (energy_uj) *energy_uj = ecounter.energy;
     if (ts_us) *ts_us = ecounter.timestamp;
 }
 
-EXTERNC void apmidg_readpoweravg(int devid, int pwrid) {
+EXTERNC double apmidg_readpoweravg(int devid, int pwrid) {
+    double watt = 0.0;
+    if (!apmidg) return watt;
+
+    ze_result_t res;
+    IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
+    zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
+    zes_power_energy_counter_t ecounter;
+
     apmidg_mutex.lock();
+    watt = perdev.sampleenergy(pwrid, ecounter);
     apmidg_mutex.unlock();
+
+    return watt;
 }
 
 

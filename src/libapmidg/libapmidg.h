@@ -80,7 +80,7 @@ EXTERNC void apmidg_readenergy(int devid, int pwrid,
 /**
  * @brief Reads the average power
  */
-EXTERNC void apmidg_readpoweravg(int devid, int pwrid);
+EXTERNC double apmidg_readpoweravg(int devid, int pwrid);
 
 // frequency domains
 

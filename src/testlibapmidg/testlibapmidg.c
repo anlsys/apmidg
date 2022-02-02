@@ -54,10 +54,11 @@ int main()
 
 	    // test reader
 	    uint64_t energy, timestamp;
+	    double watt;
 	    apmidg_readenergy(di, pi, &energy, &timestamp);
-	    printf("               energy=%lu uJ timestamp=%lu usec\n",
-		   energy, timestamp);
-
+	    watt = apmidg_readpoweravg(di, pi);
+	    printf("               energy=%lu uJ timestamp=%lu usec power=%lf W\n",
+		    energy, timestamp, watt);
 	}
 	for (int fi=0; fi<nfreqdoms; fi++) {
 	    int onsubdev, subdevid, canctrl;
