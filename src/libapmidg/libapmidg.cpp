@@ -13,6 +13,7 @@
 #include "apmidg_zmacrostr.h"
 
 #include <iostream>
+#include <cstdio>
 #include <vector>
 #include <mutex>
 
@@ -473,11 +474,21 @@ EXTERNC void apmidg_readtemp(int devid, int tempid, double *temp_C) {
 
 EXTERNC int apmidg_init()
 {
+    int ret;
+
+    if(setenv("ZES_ENABLE_SYSMAN", "1", 1) != 0) {
+	perror("setenv() failed");
+	exit(1);
+    }
+
+#if 0
     const char *e = getenv("ZES_ENABLE_SYSMAN");
     if (!(e && e[0] == '1'))  {
 	std::cout << "Error: please set ZES_ENABLE_SYSMAN to 1" << std::endl;
 	exit(1);
     }
+#endif
+
     if (apmidg) {
 	std::cout << "Warning: apmidg is already initialized";
 	return -1;

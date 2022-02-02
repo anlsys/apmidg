@@ -19,7 +19,6 @@ To run test codes
 
 	$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:__LIBAPMIDG_INSTALL_PATH__/lib64
 	$ export PATH=$PATH:__LIBAPMIDG_INSTALL_PATH__/bin
-	$ export ZES_ENABLE_SYSMAN=1
 
 	C-based testcode
 	$ testlibapmidg
