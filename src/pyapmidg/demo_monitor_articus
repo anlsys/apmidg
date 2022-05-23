@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import time, sys
-import re
+import re, getopt
 from subprocess import Popen, PIPE, STDOUT
 
 import pyapmidg
@@ -18,15 +18,14 @@ def read_boardpower_arcticus():
                 watt = watt + float(res[3])
     return watt
 
-def monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0):
+def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, delay_sec=0.5):
     print("")
-    print("Test monitoring articus")
+    print("Test monitoring")
 
     rr = clr_rapl.rapl_reader()
 
     kp = keypress.keypress()
     kp.enable()
-    starttime = time.time()
 
     devnpwrdoms = []
     devnfreqdoms = []
@@ -46,30 +45,38 @@ def monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0):
                 flims.max_MHz = maxreq_MHz
                 pm.setfreqlims(devid, freqid, flims.min_MHz, flims.max_MHz)
 
+    starttime = time.time()
+
     with open(fn, 'w') as f:
+        f.write('# powercap_watt=%d\n'%powercap_watt)
+        f.write('# freqcap_mhz=%d\n'%freqcap_mhz)
+
         while True:
             # read all sensors
-            curt = time.time()
-            s = "%lf %lf GPU   " % (curt, curt - starttime)
             for devid in range(0, ndevs):
+                curt = time.time()
+                s = "%lf %lf GPU%d  " % (curt, curt - starttime, devid)
+
                 for pwrid in range(0, devnpwrdoms[devid]):
 #                    plim = pm.getpwrlim(devid, pwrid)/1000.
 #                    s += "%.1lf " % plim
                     ptmp = pm.readpoweravg(devid, pwrid)
                     s += "%.1lf " % ptmp
                 s += " "
-#                for freqid in range(0, devnfreqdoms[devid]):
-#                    flims = pm.getfreqlims(devid, freqid)
-#                    s += "%d " % (int(flims.max_MHz))
-#                    ftmp = pm.readfreq(devid, freqid)
-#                    s += "%d " % int(ftmp)
-#                s += " "
-#                for tempid in range(0, devntempsensors[devid]):
-#                    ttmp = pm.readtemp(devid, tempid)
-#                    s += "%.1lf " % ttmp
+                if True: # read Freq.
+                    for freqid in range(0, devnfreqdoms[devid]):
+                        flims = pm.getfreqlims(devid, freqid)
+                        s += "%d " % (int(flims.max_MHz))
+                        ftmp = pm.readfreq(devid, freqid)
+                        s += "%d " % int(ftmp)
+                        s += " "
+                if True: # read temp.
+                    for tempid in range(0, devntempsensors[devid]):
+                        ttmp = pm.readtemp(devid, tempid)
+                        s += "%.1lf " % ttmp
                 s += "   "
-            f.write(s + "\n")
-            print(s)
+                f.write(s + "\n")
+                print(s)
             # IPMI
             curt = time.time()
             s = "%lf %lf BOARD " % (curt, curt - starttime)
@@ -83,19 +90,77 @@ def monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0):
             f.write(s + "\n")
             print(s)
             #
+            if curt - starttime > timeout_sec:
+                break
             if kp.readkey() == 'q':
                 break
-            time.sleep(.5)
+            time.sleep(delay_sec)
     kp.disable()
 
 
+def usage():
+    print('demo_monitor [options] command args')
+    print()
+    print('-t timeout : timeout in second, otherwise no timeout')
+    print('-r [01]    : reset after the monitor loop. 1 to enable and 0 to diable')
+    print('-o outfn   : output filename')
+    print('-p int     : power capping value in Watt. no power capping by default')
+    print('-f int     : frequency capping value in MHz. no frequency capping by default')
+    print('-d float   : measurement dealy in sec. default: 0.5 second')
+    print()
+
+
 if __name__ == '__main__':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'ht:r:o:p:f:d:', [])
+    except getopt.GetoptError as err:
+        print(err)
+        usage()
+        sys.exit(1)
+
+    # default values
+    delay_sec = 0.5
+    timeout_sec = 0
+    powercap_watt = 0
+    freqcap_mhz = 0
+    reset_setting =False
+    outfn = 'apmidg_monitor.txt'
+
+    for o, a in opts:
+        if o in ('-h'):
+            usage()
+            sys.exit(0)
+        elif o in ('-t'):
+            timeout_sec = int(a)
+        elif o in ('-p'):
+            powercap_watt = int(a)
+        elif o in ('-f'):
+            freqcap_mhz = int(a)
+        elif o in ('-r'):
+            reset_setting = int(a) == 1
+        elif o in ('-o'):
+            outfn = a
+        elif o in ('-d'):
+            delay_sec = float(a)
+        else:
+            break
+
+    print('[demo_monitor]')
+    print('reset_setting: ', reset_setting)
+    print('delay_sec:     ', delay_sec)
+    print('timeout_sec:   ', timeout_sec)
+    print('powercap_watt: ', powercap_watt)
+    print('freqcap_mhz:   ', freqcap_mhz)
+    print('outfn:         ', outfn)
+    print('')
+
     pm = pyapmidg.clr_apmidg()
     ndevs = pm.getndevs()
 
-    monitor(pm, ndevs, 'output_clr_apmidg.txt', 0, 0.0)
+    set_and_monitor(pm, ndevs, outfn, powercap_watt, freqcap_mhz, timeout_sec, delay_sec)
 
-    print("reset setting")
-    pm.reset2default()
+    if reset_setting:
+        print("reset setting")
+        pm.reset2default()
 
     print("done")
