@@ -22,7 +22,7 @@
 #include <unistd.h>
 
 #define _ZE_ERROR_MSG(NAME,RES) {printf("%s() failed at %d(%s): res=%x:%s\n",(NAME),__LINE__,__FILE__,(RES),str_ze_result_t(RES)); std::terminate();}
-#define _ZE_ERROR_MSG_NOTERMINATE(NAME,RES) {printf("%s() failed at %d(%s): res=%x:%s\n",(NAME),__LINE__,__FILE__,(RES),str_ze_result_t(RES)); std::terminate();}
+#define _ZE_ERROR_MSG_NOTERMINATE(NAME,RES) {printf("%s() error at %d(%s): res=%x:%s\n",(NAME),__LINE__,__FILE__,(RES),str_ze_result_t(RES));}
 #define _ERROR_MSG(MSG) {perror((MSG)); printf("errno=%d at %d(%s)",errno,__LINE__,__FILE__);}
 
 
