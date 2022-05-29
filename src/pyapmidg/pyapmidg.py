@@ -217,22 +217,23 @@ class clr_apmidg:
     # reset2default
     #
 
-    def reset2default(self):
+    def reset2default(self, resetfreq=True, resetpwr=False):
         for devid in range(0, self.ndevs):
             npwrdoms = self.getnpwrdoms(devid)
             nfreqdoms = self.getnfreqdoms(devid)
-            for pwrid in range(0, npwrdoms):
-                pwrprops = self.getpwrprops(devid, pwrid)
-                self.setpwrlim(devid, pwrid, pwrprops.deflim_mw)
-                curpwrlim_mw = self.getpwrlim(devid, pwrid)
-                # print("devid%d/pwrdid%d: deflim_mw=%d curpwrlim_mw=%d" % (devid, pwrid, pwrprops.deflim_mw, curpwrlim_mw))
-            for freqid in range(0, nfreqdoms):
-                fp = self.getfreqprops(devid, freqid)
-                #print("devid%d/freqid%d: onsubdev=%d, subdevid=%d, canctrl=%d, min_MHz=%d, max_MHz=%d" % (devid, freqid, fp.onsubdev, fp.subdevid, fp.canctrl, fp.min_MHz, fp.max_MHz))
-                self.setfreqlims(devid, freqid, fp.min_MHz, fp.max_MHz)
-                #flims = pm.getfreqlims(devid, pwrid)
-                #print("devid%d/freqid%d: current min_MHz=%d, max_MHz=%d" % (devid, freqid, flims.min_MHz, flims.max_MHz))
-
+            if resetfreq:
+                for freqid in range(0, nfreqdoms):
+                    fp = self.getfreqprops(devid, freqid)
+                    #print("devid%d/freqid%d: onsubdev=%d, subdevid=%d, canctrl=%d, min_MHz=%d, max_MHz=%d" % (devid, freqid, fp.onsubdev, fp.subdevid, fp.canctrl, fp.min_MHz, fp.max_MHz))
+                    self.setfreqlims(devid, freqid, fp.min_MHz, fp.max_MHz)
+                    #flims = self.getfreqlims(devid, freqid)
+                    #print("devid%d/freqid%d: current min_MHz=%d, max_MHz=%d" % (devid, freqid, flims.min_MHz, flims.max_MHz))
+            if resetpwr:
+                for pwrid in range(0, npwrdoms):
+                    pwrprops = self.getpwrprops(devid, pwrid)
+                    self.setpwrlim(devid, pwrid, pwrprops.deflim_mw)
+                    curpwrlim_mw = self.getpwrlim(devid, pwrid)
+                    # print("devid%d/pwrdid%d: deflim_mw=%d curpwrlim_mw=%d" % (devid, pwrid, pwrprops.deflim_mw, curpwrlim_mw))
 
                 
 def basictest(pm, ndevs):

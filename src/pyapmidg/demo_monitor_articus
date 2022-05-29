@@ -1,24 +1,39 @@
 #!/usr/bin/env python3
 
-import time, sys
+import time, sys, os
 import re, getopt
 from subprocess import Popen, PIPE, STDOUT
 
 import pyapmidg
 import clr_rapl
 import keypress
+import platform
+
+ipmisensorids = '22,23'
+hn=''
+def checkhost():
+    hn = platform.node()
+    if hn.find('florentia') == 0:
+        ipmisensorids = '49,51,53'
+    else:
+        ipmisensorids = '22,23'
+    print('host:', hn )
+    print('sensorids:', ipmisensorids)
 
 def read_boardpower_arcticus():
     watt = 0
-    p = Popen('sudo ipmi-sensors --comma-separated-output -r 22,23', stdout = PIPE, stderr = STDOUT, shell = True)
+    p = Popen('sudo ipmi-sensors --comma-separated-output -r %s'%ipmisensorids, stdout = PIPE, stderr = STDOUT, shell = True)
     for l in p.stdout:
         res = l.decode().split(',')
         if len(res) > 5:
             if (res[1].find('Input Power') > 0) :
-                watt = watt + float(res[3])
+                try:
+                    watt = watt + float(res[3])
+                except:
+                    print('Waring:', res[3])
     return watt
 
-def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, delay_sec=0.5):
+def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, delay_sec=0.5, cmdargs = []):
     print("")
     print("Test monitoring")
 
@@ -43,16 +58,26 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
             if (maxreq_MHz > 0.0):
                 flims = pm.getfreqlims(devid, freqid)
                 flims.max_MHz = maxreq_MHz
+                print(flims.max_MHz, flims.min_MHz)
                 pm.setfreqlims(devid, freqid, flims.min_MHz, flims.max_MHz)
 
-    starttime = time.time()
+    childpid = 0
+    if len(cmdargs)>0:
+        pid = os.fork()
+        if pid == 0:
+            ret = os.system(' '.join(cmdargs))
+            sys.exit(ret)
+        else:
+            childpid = pid
 
+    starttime = time.time()
     with open(fn, 'w') as f:
         f.write('# powercap_watt=%d\n'%powercap_watt)
         f.write('# freqcap_mhz=%d\n'%freqcap_mhz)
 
         while True:
             # read all sensors
+            readoutstartt = time.time()
             for devid in range(0, ndevs):
                 curt = time.time()
                 s = "%lf %lf GPU%d  " % (curt, curt - starttime, devid)
@@ -77,24 +102,30 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
                 s += "   "
                 f.write(s + "\n")
                 print(s)
-            # IPMI
-            curt = time.time()
-            s = "%lf %lf BOARD " % (curt, curt - starttime)
-            s += "%.1lf" % read_boardpower_arcticus()
-            f.write(s + "\n")
-            print(s)
             # RAPL
             curt = time.time()
             s = "%lf %lf CPU   " % (curt, curt - starttime)
             s += "%.1lf" % rr.sample()['power']['total']
             f.write(s + "\n")
             print(s)
+            # IPMI
+            curt = time.time()
+            s = "%lf %lf BOARD " % (curt, curt - starttime)
+            s += "%.1lf" % read_boardpower_arcticus()
+            f.write(s + "\n")
+            print(s)
             #
-            if curt - starttime > timeout_sec:
-                break
+            if timeout_sec > 0:
+                if curt - starttime > timeout_sec:
+                    break
             if kp.readkey() == 'q':
                 break
-            time.sleep(delay_sec)
+            readoutendt = time.time()
+            sleeptime = delay_sec - (readoutendt-readoutstartt)
+            if sleeptime < 0.0:
+                sleeptime = 0.0
+                print("Warning: sleeptime became negative. reset to zero")
+            time.sleep(sleeptime)
     kp.disable()
 
 
@@ -123,7 +154,7 @@ if __name__ == '__main__':
     timeout_sec = 0
     powercap_watt = 0
     freqcap_mhz = 0
-    reset_setting =False
+    reset_setting = True
     outfn = 'apmidg_monitor.txt'
 
     for o, a in opts:
@@ -146,18 +177,22 @@ if __name__ == '__main__':
             break
 
     print('[demo_monitor]')
+    checkhost()
     print('reset_setting: ', reset_setting)
     print('delay_sec:     ', delay_sec)
     print('timeout_sec:   ', timeout_sec)
     print('powercap_watt: ', powercap_watt)
     print('freqcap_mhz:   ', freqcap_mhz)
     print('outfn:         ', outfn)
+    args = []  # disable the feature for now
+    if len(args) > 0:
+        print('cmdargs:       ', args)
     print('')
 
     pm = pyapmidg.clr_apmidg()
     ndevs = pm.getndevs()
 
-    set_and_monitor(pm, ndevs, outfn, powercap_watt, freqcap_mhz, timeout_sec, delay_sec)
+    set_and_monitor(pm, ndevs, outfn, powercap_watt, freqcap_mhz, timeout_sec, delay_sec, args)
 
     if reset_setting:
         print("reset setting")
