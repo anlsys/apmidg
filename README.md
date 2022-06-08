@@ -30,5 +30,10 @@ To run test codes
 	>>> pm.readpoweravg()  # read the average power of the default domain on the default
 	xx.x
 
+
+NOTE:
+- See src/pyapmidg/demo_monitor_articus for Python API usages
+- C examples are available in src/c_examples
+
 --
-Technical contact: Kazutomo Yoshii <kazutomo@mcs.anl.gov>
+Contact: Kazutomo Yoshii <kazutomo@mcs.anl.gov>

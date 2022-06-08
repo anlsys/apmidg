@@ -50,7 +50,7 @@ int main()
 	    if (targetlim_mw == curlim_mw)
 		printf("               testing powercap: passed\n");
 	    else
-		printf("               testing powercap: failed (possibly insufficient persmission for hwmon\n");
+		printf("               testing powercap: failed (possibly insufficient persmissions for hwmon or driver problems\n");
 	    apmidg_setpwrlim(di, pi, prevlim_mw); // revert back
 
 	    // test reader
@@ -79,7 +79,7 @@ int main()
 	    if ((target_min_MHz==tmp_min_MHz)&&(target_max_MHz==tmp_max_MHz))
 		printf("               testing freqset: passed\n");
 	    else
-		printf("               testing freqset: failed (possibly insufficient persmission for hwmon\n");
+		printf("               testing freqset: failed (possibly insufficient persmissions for hwmon or driver problems\n");
 	    // revert back to the default
 	    apmidg_setfreqlims(di, fi, min_MHz, max_MHz);
 

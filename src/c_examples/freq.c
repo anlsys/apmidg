@@ -2,17 +2,19 @@
 #include <stdio.h>
 #include <unistd.h>
 
-static void reportpoweravgall()
+static void reportfreqall()
 {
     int ndevs = apmidg_getndevs();
 
     // iterate GPUs
     for (int di=0; di<ndevs; di++) {
-	int npwrdoms = apmidg_getnpwrdoms(di);
+	int nfreqdoms = apmidg_getnfreqdoms(di);
 	printf("dev%d: ", di);
-	for (int pi=0; pi<npwrdoms; pi++) {
-	    double watt = apmidg_readpoweravg(di, pi);
-	    printf("domain%d=%5.1lf   ", pi, watt);
+	// iterate the freq domains
+	for (int fi=0; fi<nfreqdoms; fi++) {
+	    double actual_MHz;
+	    apmidg_readfreq(di, fi, &actual_MHz);
+	    printf("domain%d=%5.1lf   ", fi, actual_MHz);
 	}
 	printf("\n");
     }
@@ -24,13 +26,13 @@ int main()
     int verbose = 1;
     if(apmidg_init(verbose) != 0) return 1;
 
-    printf("Read the poweravg of all domains for available GPUs. Unit is Watt\n\n");
+    printf("Read the frequency of all domains for all GPUs. Unit is MHz\n\n");
     for (int i = 0; i < n; i++) {
-	reportpoweravgall();
+	reportfreqall();
 	sleep(1);
     }
 
     apmidg_finish();
-    
+
     return 0;
 }
