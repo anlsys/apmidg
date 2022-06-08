@@ -41,7 +41,10 @@ class IDGPowerPerDevice {
     std::vector<zes_freq_handle_t> freqhs;
     std::vector<zes_temp_handle_t> temphs;
 
-    // assume properties are static
+    // if a feature is unavailable for some reason, the following flags will be set.
+    bool enabled_powerlimit;
+
+    // assume these properties are static
     bool isgpu;
     uint32_t npwrdoms;
     uint32_t nfreqdoms;
@@ -81,6 +84,19 @@ public:
 	    for (int i = 0; i < npwrdoms; ++i)
 		sampleenergy(i, ecounter);
 	    usleep(10*1000); // sleep 10 msec
+
+	    zes_pwr_handle_t pwrh = getpwrh(0); // note check only the first domain
+	    zes_power_sustained_limit_t pSustained;
+	    zes_power_burst_limit_t pBurst;
+	    zes_power_peak_limit_t pPeak;
+
+	    res = zesPowerGetLimits(pwrh, &pSustained, &pBurst, &pPeak);
+	    if (res != ZE_RESULT_SUCCESS) {
+		enabled_powerlimit = false;
+		std::cout << "Warning: PowerLimit is unavailable. Disabled the fueature." << std::endl;
+	    } else {
+		enabled_powerlimit = true;
+	    }
 	}
 
 	nfreqdoms = 0;
@@ -124,6 +140,7 @@ public:
 
     ze_device_handle_t getdev() {return dev; }
     zes_device_handle_t getsysmanh() {return smh; }
+    bool is_powerlimit_available() { return enabled_powerlimit; }
     zes_pwr_handle_t getpwrh(int id) {
 	if (id >= getnpwrdoms() ) {
 		std::cout << "Warning: getpwrh(): specified id is out of the range: set it to 0" << std::endl;
@@ -236,10 +253,10 @@ class IDGPower {
     int verbose;
 
 public:
-    IDGPower(const int ver = 1) {
+    IDGPower(const int _verbose = 1) {
 	ze_result_t res;
 
-	verbose = ver;
+	verbose = _verbose;
 	enabled = false;
 
 	res = zeInit(ZE_INIT_FLAG_GPU_ONLY);
@@ -277,8 +294,14 @@ public:
     }
 };
 
+// singleton object of IDGPower
 static IDGPower *apmidg = NULL;
+
+// protect control features
 static std::mutex apmidg_mutex;
+
+// the availablity of features
+
 
 #define EXTERNC extern "C"
 
@@ -327,6 +350,7 @@ EXTERNC void apmidg_getpwrlim(int devid, int pwrid, int *lim_mw) {// sustained o
 
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
+    if (!perdev.is_powerlimit_available()) return;
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
     zes_power_sustained_limit_t pSustained;
@@ -349,6 +373,7 @@ EXTERNC void apmidg_setpwrlim(int devid, int pwrid, int lim_mw) { // sustained o
 
     ze_result_t res;
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
+    if (!perdev.is_powerlimit_available()) return;
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
     zes_power_sustained_limit_t pSustained;
@@ -563,7 +588,7 @@ EXTERNC int apmidg_init()
 	return -1;
     }
 
-    apmidg = new IDGPower(1);
+    apmidg = new IDGPower(1); // the arg is the verbose level
     if (! (apmidg && apmidg->isEnabled()) ) {
 	return -1;
     }
