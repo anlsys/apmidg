@@ -57,9 +57,9 @@ class clr_apmidg:
     this class.
     """
 
-    def __init__(self):
+    def __init__(self, verbose =1):
         self.apm = CDLL("libapmidg.so")
-        ret = self.apm.apmidg_init()
+        ret = self.apm.apmidg_init(verbose)
 
         # define argtypes here if needed
         self.func_getpwrprops = self.apm.apmidg_getpwrprops
@@ -80,7 +80,7 @@ class clr_apmidg:
             for pwrid in range(0, npwrdoms):
                 e = self.readenergy(devid, pwrid)
                 tmp.append(e)
-                print(devid, pwrid, e.energy_uj, e.ts_usec)
+                # print(devid, pwrid, e.energy_uj, e.ts_usec)
             self.prev_e.append(tmp)
         time.sleep(0.1) # this is a workaround for readpoweravg() to be called immediately after this object is created
 

@@ -20,17 +20,25 @@ def checkhost():
     print('host:', hn )
     print('sensorids:', ipmisensorids)
 
+enabled_boardpower = False
+
 def read_boardpower_arcticus():
+    nerr = 0
     watt = 0
     p = Popen('sudo ipmi-sensors --comma-separated-output -r %s'%ipmisensorids, stdout = PIPE, stderr = STDOUT, shell = True)
     for l in p.stdout:
         res = l.decode().split(',')
         if len(res) > 5:
             if (res[1].find('Input Power') > 0) :
-                try:
+                if res[3] == "N/A":
+                    if nerr == 0:
+                        print('Warning: disabled the boardpower reading', res[3])
+                        nerr += 1
+                    enabled_boardpower = False
+                else:
                     watt = watt + float(res[3])
-                except:
-                    print('Waring:', res[3])
+                    enabled_boardpower = True
+
     return watt
 
 def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, delay_sec=0.5, cmdargs = []):
@@ -61,14 +69,16 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
                 print(flims.max_MHz, flims.min_MHz)
                 pm.setfreqlims(devid, freqid, flims.min_MHz, flims.max_MHz)
 
-    childpid = 0
-    if len(cmdargs)>0:
-        pid = os.fork()
-        if pid == 0:
-            ret = os.system(' '.join(cmdargs))
-            sys.exit(ret)
-        else:
-            childpid = pid
+#    childpid = 0
+#    if len(cmdargs)>0:
+#        pid = os.fork()
+#        if pid == 0:
+#            ret = os.system(' '.join(cmdargs))
+#            sys.exit(ret)
+#        else:
+#            childpid = pid
+
+    read_boardpower_arcticus() # the first read may take time
 
     starttime = time.time()
     with open(fn, 'w') as f:
@@ -109,11 +119,12 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
             f.write(s + "\n")
             print(s)
             # IPMI
-            curt = time.time()
-            s = "%lf %lf BOARD " % (curt, curt - starttime)
-            s += "%.1lf" % read_boardpower_arcticus()
-            f.write(s + "\n")
-            print(s)
+            if enabled_boardpower:
+                curt = time.time()
+                s = "%lf %lf BOARD " % (curt, curt - starttime)
+                s += "%.1lf" % read_boardpower_arcticus()
+                f.write(s + "\n")
+                print(s)
             #
             if timeout_sec > 0:
                 if curt - starttime > timeout_sec:
@@ -189,7 +200,8 @@ if __name__ == '__main__':
         print('cmdargs:       ', args)
     print('')
 
-    pm = pyapmidg.clr_apmidg()
+    verbose = 1
+    pm = pyapmidg.clr_apmidg(verbose)
     ndevs = pm.getndevs()
 
     set_and_monitor(pm, ndevs, outfn, powercap_watt, freqcap_mhz, timeout_sec, delay_sec, args)

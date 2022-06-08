@@ -566,7 +566,7 @@ EXTERNC void apmidg_readtemp(int devid, int tempid, double *temp_C) {
 }
 
 
-EXTERNC int apmidg_init()
+EXTERNC int apmidg_init(int verbose)
 {
     int ret;
 
@@ -588,7 +588,7 @@ EXTERNC int apmidg_init()
 	return -1;
     }
 
-    apmidg = new IDGPower(1); // the arg is the verbose level
+    apmidg = new IDGPower(verbose); // the arg is the verbose level
     if (! (apmidg && apmidg->isEnabled()) ) {
 	return -1;
     }

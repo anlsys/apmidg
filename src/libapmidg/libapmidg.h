@@ -33,7 +33,7 @@
  * discrete GPUs
  *
  */
-EXTERNC int  apmidg_init(); // return 0 if successful
+EXTERNC int  apmidg_init(int verbose); // return 0 if successful
 
 /**
  * @brief Finalizes the power management.

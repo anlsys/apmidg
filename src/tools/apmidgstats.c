@@ -8,7 +8,8 @@
 
 int main()
 {
-    if(apmidg_init() != 0) {
+    int verbose = 1;
+    if(apmidg_init(verbose) != 0) {
 	printf("Failed to initialize\n");
 	return 1;
     }
