@@ -13,6 +13,7 @@
 #include "apmidg_zmacrostr.h"
 
 #include <iostream>
+#include <fstream>
 #include <cstdio>
 #include <vector>
 #include <mutex>
@@ -369,6 +370,26 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
     if (minlim_mw) *minlim_mw = (int)pprop.minLimit;
     if (maxlim_mw) *maxlim_mw = (int)pprop.maxLimit;
 
+    //
+    // Workaround. L0 sets defaultLimit -1 (reading a wrong sysfs file)
+    // Remove this later once L0 is fixed!
+    static bool msgdisplayed = false;
+    std::string buf;
+    std::fstream fs;
+    int workaround_maxlimit=-1;
+    fs.open("/sys/class/drm/card0/device/hwmon/hwmon1/power1_max_default", std::ios::in);
+    if (fs) {
+	fs >> buf;
+	fs.close();
+	workaround_maxlimit = stoi(buf) / 1000; // uw to mw
+    }
+    if (canctrl>0 && (int)pprop.defaultLimit == -1 && workaround_maxlimit > 0) {
+	if (deflim_mw) *deflim_mw = workaround_maxlimit;
+	if (!msgdisplayed) {
+	    std::cout << "apmidg_getpwrprops: deflim_mw workaround applied" << std::endl;
+	    msgdisplayed = true;
+	}
+    }
 }
 
 static void prlevel(int level) {
