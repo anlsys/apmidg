@@ -86,16 +86,38 @@ public:
 	    usleep(10*1000); // sleep 10 msec
 
 	    zes_pwr_handle_t pwrh = getpwrh(0); // note check only the first domain
-	    zes_power_sustained_limit_t pSustained;
-	    zes_power_burst_limit_t pBurst;
-	    zes_power_peak_limit_t pPeak;
 
-	    res = zesPowerGetLimits(pwrh, &pSustained, &pBurst, &pPeak);
+	    // old API
+	    // zes_power_sustained_limit_t pSustained;
+	    // zes_power_burst_limit_t pBurst;
+	    // zes_power_peak_limit_t pPeak;
+	    // res = zesPowerGetLimits(pwrh, &pSustained, &pBurst, &pPeak);
+
+	    const int maxpCount = 10;
+	    zes_power_limit_ext_desc_t pSustained[maxpCount];
+	    uint32_t pCount;
+	    pCount = 0;
+
+	    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
 	    if (res != ZE_RESULT_SUCCESS) {
 		enabled_powerlimit = false;
 		std::cout << "Warning: PowerLimit is unavailable. Disabled the fueature." << std::endl;
 	    } else {
-		enabled_powerlimit = true;
+		enabled_powerlimit = false;
+
+		if (pCount > maxpCount) {
+		    pCount = maxpCount;
+		    std::cout << "Warning: pCount is reset to " << pCount << std::endl;
+		}
+
+		for (int j=0; j<pCount; j++) {
+		    zes_power_limit_ext_desc_t *p;
+		    p = pSustained + j;
+
+		    if (p->level == ZES_POWER_LEVEL_SUSTAINED) {
+			enabled_powerlimit = true;
+		    }
+		}
 	    }
 	}
 
@@ -328,7 +350,7 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
     if (!apmidg) return;
 
     ze_result_t res;
-    zes_power_properties_t pprop;
+    zes_power_properties_t pprop = {};
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
@@ -344,6 +366,26 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
 
 }
 
+static void prlevel(int level) {
+    switch(level) {
+	case ZES_POWER_LEVEL_SUSTAINED:
+	    std::cout << "Sustained" << std::endl;
+	    break;
+	case ZES_POWER_LEVEL_PEAK:
+	    std::cout << "Peak" << std::endl;
+	    break;
+	case ZES_POWER_LEVEL_BURST:
+	    std::cout << "Burst" << std::endl;
+	    break;
+	case ZES_POWER_LEVEL_INSTANTANEOUS:
+	    std::cout << "Instantaneous" << std::endl;
+	    break;
+	default:
+	    std::cout << "Invalid Power Limit" << std::endl;
+    }
+}
+
+
 EXTERNC void apmidg_getpwrlim(int devid, int pwrid, int *lim_mw) {// sustained only
     if (lim_mw) *lim_mw = -1;
     if (!apmidg) return;
@@ -353,19 +395,45 @@ EXTERNC void apmidg_getpwrlim(int devid, int pwrid, int *lim_mw) {// sustained o
     if (!perdev.is_powerlimit_available()) return;
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
+#if 0 // OLD API
     zes_power_sustained_limit_t pSustained;
     zes_power_burst_limit_t pBurst;
     zes_power_peak_limit_t pPeak;
-
     res = zesPowerGetLimits(pwrh, &pSustained, &pBurst, &pPeak);
     if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimits", res);
-
     if (lim_mw) *lim_mw = pSustained.power;
-    // pSustained.enabled
-    // pSustained.interval
-    // pBurst.enabled
-    // pBurst.power // mW
-    // pPeak.powerAC, pPeak.powerDC // mW
+#endif
+
+    const int maxpCount = 10;
+    zes_power_limit_ext_desc_t pSustained[maxpCount];
+    uint32_t pCount;
+    pCount = 0;
+    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
+    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimitsExt", res);
+    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
+    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimitsExt", res);
+
+    if (pCount > maxpCount) {
+	pCount = maxpCount;
+	std::cout << "Warning: pCount is reset to " << pCount << std::endl;
+    }
+
+    int lim_mw_queried = -1;
+
+    for (int j=0; j<pCount; j++) {
+	zes_power_limit_ext_desc_t *p;
+	p = pSustained + j;
+
+	if (p->level == ZES_POWER_LEVEL_SUSTAINED) {
+	    lim_mw_queried = p->limit;
+	}
+    }
+
+    if (lim_mw && lim_mw_queried > 0) {
+	*lim_mw = lim_mw_queried;
+    } else {
+	std::cout << "Warning: apmidg_getpwrlim found no target power level." << std::endl;
+    }
 }
 
 EXTERNC void apmidg_setpwrlim(int devid, int pwrid, int lim_mw) { // sustained only
@@ -376,6 +444,7 @@ EXTERNC void apmidg_setpwrlim(int devid, int pwrid, int lim_mw) { // sustained o
     if (!perdev.is_powerlimit_available()) return;
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
+#if 0 // OLD API
     zes_power_sustained_limit_t pSustained;
 
     apmidg_mutex.lock();
@@ -387,6 +456,40 @@ EXTERNC void apmidg_setpwrlim(int devid, int pwrid, int lim_mw) { // sustained o
     res = zesPowerSetLimits(pwrh, &pSustained, NULL, NULL);
     if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerSetLimits", res);
     apmidg_mutex.unlock();
+#endif
+
+    const int maxpCount = 10;
+    zes_power_limit_ext_desc_t pSustained[maxpCount];
+    uint32_t pCount;
+    pCount = 0;
+    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
+    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimitsExt", res);
+
+    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
+    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimitsExt", res);
+
+    if (pCount > maxpCount) {
+	pCount = maxpCount;
+	std::cout << "Warning: pCount is reset to " << pCount << std::endl;
+    }
+
+    bool found_sustained = false;
+
+    for (int j=0; j<pCount; j++) {
+	zes_power_limit_ext_desc_t *p;
+	p = pSustained + j;
+	if (p->level == ZES_POWER_LEVEL_SUSTAINED) {
+	    found_sustained = true;
+	    p->limit = lim_mw;
+	}
+    }
+
+    if (found_sustained) {
+	res = zesPowerSetLimitsExt(pwrh, &pCount, pSustained);
+	if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerSetLimitsExt", res);
+    } else {
+	std::cout << "Warning: apmidg_setpwrlim found no target power level" << std::endl;
+    }
 }
 
 EXTERNC void apmidg_readenergy(int devid, int pwrid, uint64_t *energy_uj, uint64_t *ts_us) {

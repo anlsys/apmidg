@@ -14,6 +14,7 @@ int main()
 	return 1;
     }
 
+    printf("[apmidgstats] built:%s %s\n", __DATE__, __TIME__);
     // obtains the number of GPUs in this node
     int ndevs = apmidg_getndevs();
     printf("ndevs=%d\n", ndevs);

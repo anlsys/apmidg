@@ -9,18 +9,13 @@ import clr_rapl
 import keypress
 import platform
 
-ipmisensorids = '22,23'
-hn=''
-def checkhost():
-    hn = platform.node()
-    if hn.find('florentia') == 0:
-        ipmisensorids = '49,51,53'
-    else:
-        ipmisensorids = '22,23'
-    print('host:', hn )
-    print('sensorids:', ipmisensorids)
+enable_keypress = True
 
-enabled_boardpower = False
+// define ipmi sensor ids here
+#ipmisensorids = '22,23'
+ipmisensorids = '27,29,31'
+
+enabled_boardpower = True
 
 def read_boardpower_arcticus():
     nerr = 0
@@ -47,8 +42,9 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
 
     rr = clr_rapl.rapl_reader()
 
-    kp = keypress.keypress()
-    kp.enable()
+    if enable_keypress:
+        kp = keypress.keypress()
+        kp.enable()
 
     devnpwrdoms = []
     devnfreqdoms = []
@@ -93,8 +89,8 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
                 s = "%lf %lf GPU%d  " % (curt, curt - starttime, devid)
 
                 for pwrid in range(0, devnpwrdoms[devid]):
-#                    plim = pm.getpwrlim(devid, pwrid)/1000.
-#                    s += "%.1lf " % plim
+                    plim = pm.getpwrlim(devid, pwrid)/1000.
+                    s += "%.1lf " % plim
                     ptmp = pm.readpoweravg(devid, pwrid)
                     s += "%.1lf " % ptmp
                 s += " "
@@ -129,7 +125,7 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
             if timeout_sec > 0:
                 if curt - starttime > timeout_sec:
                     break
-            if kp.readkey() == 'q':
+            if enable_keypress and kp.readkey() == 'q':
                 break
             readoutendt = time.time()
             sleeptime = delay_sec - (readoutendt-readoutstartt)
@@ -137,7 +133,8 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
                 sleeptime = 0.0
                 print("Warning: sleeptime became negative. reset to zero")
             time.sleep(sleeptime)
-    kp.disable()
+    if enable_keypress:
+        kp.disable()
 
 
 def usage():
@@ -160,8 +157,10 @@ if __name__ == '__main__':
         usage()
         sys.exit(1)
 
+
+
     # default values
-    delay_sec = 0.5
+    delay_sec = 1
     timeout_sec = 0
     powercap_watt = 0
     freqcap_mhz = 0
@@ -188,7 +187,6 @@ if __name__ == '__main__':
             break
 
     print('[demo_monitor]')
-    checkhost()
     print('reset_setting: ', reset_setting)
     print('delay_sec:     ', delay_sec)
     print('timeout_sec:   ', timeout_sec)
