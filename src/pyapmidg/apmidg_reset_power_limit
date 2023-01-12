@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+import time, sys, os
+import pyapmidg
+
+pm = pyapmidg.clr_apmidg(verbose=0)
+ndevs = pm.getndevs()
+
+def resetPowerLimit(statusonly=False):
+    for devid in range(0, ndevs):
+        npwrdoms = pm.getnpwrdoms(devid)
+        for pwrid in range(0, npwrdoms):
+            ppros = pm.getpwrprops(devid, pwrid)
+            deflim_mw = ppros.deflim_mw
+            canctrl = ppros.canctrl
+            if canctrl > 0:
+                plim_mw = pm.getpwrlim(devid, pwrid)
+                print(f'dev{devid} pwrdom{pwrid} deflim_mw={deflim_mw} old_plim_mw={plim_mw}', end='')
+                if not statusonly:
+                    if deflim_mw < 0:
+                        deflim_mw = 600*1000  # if not default, set the possible max limit
+
+                    pm.setpwrlim(devid, pwrid, deflim_mw)
+                    new_plim_mw = pm.getpwrlim(devid, pwrid)
+                    print(f' new_plim_mw={new_plim_mw}')
+                else:
+                    print(' statusonly')
+                        
+resetPowerLimit()
+
+sys.exit(0)

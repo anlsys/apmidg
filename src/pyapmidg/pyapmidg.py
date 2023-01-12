@@ -247,35 +247,36 @@ def basictest(pm, ndevs):
         fspstr = " "*9 # just for formatting
         for pwrid in range(0, npwrdoms):
             pwrprops = pm.getpwrprops(devid, pwrid)
-            curpwrlim_mw = pm.getpwrlim(devid, pwrid)
-            print("%spwrid=%d: deflim_mw=%d curpwrlim_mw=%d" % (fspstr, pwrid, pwrprops.deflim_mw, curpwrlim_mw))
-            target_mw = curpwrlim_mw / 4 * 3
-            pm.setpwrlim(devid, pwrid, target_mw)
-            tmppwrlim_mw = pm.getpwrlim(devid, pwrid)
+            if pwrprops.canctrl > 0:
+                curpwrlim_mw = pm.getpwrlim(devid, pwrid)
+                print("%spwrid=%d: deflim_mw=%d curpwrlim_mw=%d" % (fspstr, pwrid, pwrprops.deflim_mw, curpwrlim_mw))
+                target_mw = curpwrlim_mw / 4 * 3
+                pm.setpwrlim(devid, pwrid, target_mw)
+                tmppwrlim_mw = pm.getpwrlim(devid, pwrid)
 
-            if target_mw == tmppwrlim_mw:
-                print("%stesting powercap: passed" % fspstr)
-            else:
-                print("%stesting powercap: failed" % fspstr)
-            pm.setpwrlim(devid, pwrid, pwrprops.deflim_mw)
+                if target_mw == tmppwrlim_mw:
+                    print("%stesting powercap: passed" % fspstr)
+                else:
+                    print("%stesting powercap: failed" % fspstr)
+                pm.setpwrlim(devid, pwrid, pwrprops.deflim_mw)
         #
         for freqid in range(0, nfreqdoms):
-            fp = pm.getfreqprops(devid, pwrid)
+            fp = pm.getfreqprops(devid, freqid)
             print("%sfreqid=%d: onsubdev=%d, subdevid=%d, canctrl=%d, min_MHz=%d, max_MHz=%d" % (fspstr, freqid, fp.onsubdev, fp.subdevid, fp.canctrl, fp.min_MHz, fp.max_MHz))
-
-            pm.setfreqlims(devid, pwrid, fp.min_MHz+100, fp.max_MHz-100)
-            flims = pm.getfreqlims(devid, pwrid)
-            if (flims.min_MHz == fp.min_MHz+100) and (flims.max_MHz == fp.max_MHz-100):
-                print("%stesting freq. change: passed" % fspstr)
-            else:
-                print("%stesting freq. change: failed" % fspstr)
-            pm.setfreqlims(devid, pwrid, fp.min_MHz, fp.max_MHz)
+            if fp.canctrl:
+                pm.setfreqlims(devid, freqid, fp.min_MHz+100, fp.max_MHz-100)
+                flims = pm.getfreqlims(devid, freqid)
+                if (flims.min_MHz == fp.min_MHz+100) and (flims.max_MHz == fp.max_MHz-100):
+                    print("%stesting freq. change: passed" % fspstr)
+                else:
+                    print("%stesting freq. change: failed" % fspstr)
+                pm.setfreqlims(devid, freqid, fp.min_MHz, fp.max_MHz)
             print("%scurrent freq=%.1lf MHz" % (fspstr, pm.readfreq(devid,freqid)))
         #
         for tempid in range(0, ntempsensors):
             fp = pm.gettempprops(devid, tempid)
-            print("%stempid=%d: onsubdev=%d, subdevid=%d, type=%d" % (fspstr, tempid, fp.onsubdev, fp.subdevid, fp.sensortype))
-            print("%scurrent temp=%.1lf C" % (fspstr, pm.readtemp(devid,tempid)))
+            print("%stempid=%d: onsubdev=%d, subdevid=%d, type=%d currtemp=%.1lf C" % (fspstr, tempid, fp.onsubdev, fp.subdevid, fp.sensortype, pm.readtemp(devid,tempid)))
+
 
     print("")
 
