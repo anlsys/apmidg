@@ -58,7 +58,7 @@ public:
 	devid = _devid;
 	verbose = _ver;
 
-	ze_device_properties_t devprop;
+	ze_device_properties_t devprop = {};
 
 	res = zeDeviceGetProperties(dev, &devprop);
 	if (res != ZE_RESULT_SUCCESS) _ZE_ERROR_MSG("zeDeviceGetProperties", res);
@@ -93,29 +93,34 @@ public:
 	    // zes_power_peak_limit_t pPeak;
 	    // res = zesPowerGetLimits(pwrh, &pSustained, &pBurst, &pPeak);
 
-	    const int maxpCount = 10;
-	    zes_power_limit_ext_desc_t pSustained[maxpCount];
-	    uint32_t pCount;
-	    pCount = 0;
+	    zes_power_properties_t pprop = {};
+	    res = zesPowerGetProperties(pwrh, &pprop);
+	    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetProperties", res);
 
-	    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
-	    if (res != ZE_RESULT_SUCCESS) {
-		enabled_powerlimit = false;
-		std::cout << "Warning: PowerLimit is unavailable. Disabled the fueature." << std::endl;
-	    } else {
-		enabled_powerlimit = false;
+	    enabled_powerlimit = false;
 
-		if (pCount > maxpCount) {
-		    pCount = maxpCount;
-		    std::cout << "Warning: pCount is reset to " << pCount << std::endl;
-		}
+	    if(pprop.canControl > 0) {
+		const int maxpCount = 10;
+		zes_power_limit_ext_desc_t pSustained[maxpCount];
+		uint32_t pCount;
+		pCount = 0;
 
-		for (int j=0; j<pCount; j++) {
-		    zes_power_limit_ext_desc_t *p;
-		    p = pSustained + j;
+		res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
+		if (res != ZE_RESULT_SUCCESS) {
+		    std::cout << "Warning: PowerLimit is unavailable. Disabled the fueature." << std::endl;
+		} else {
+		    if (pCount > maxpCount) {
+			pCount = maxpCount;
+			std::cout << "Warning: pCount is reset to " << pCount << std::endl;
+		    }
 
-		    if (p->level == ZES_POWER_LEVEL_SUSTAINED) {
-			enabled_powerlimit = true;
+		    for (int j=0; j<pCount; j++) {
+			zes_power_limit_ext_desc_t *p;
+			p = pSustained + j;
+
+			if (p->level == ZES_POWER_LEVEL_SUSTAINED) {
+			    enabled_powerlimit = true;
+			}
 		    }
 		}
 	    }

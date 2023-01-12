@@ -40,20 +40,21 @@ int main()
 	    apmidg_getpwrprops(di, pi, &onsubdev, &subdevid,
 			       &canctrl, &deflim_mw, NULL, NULL);
 
-	    apmidg_getpwrlim(di, pi, &curlim_mw);
+	    if (canctrl > 0) {
+		    apmidg_getpwrlim(di, pi, &curlim_mw);
 
-	    printf("      pwrdom=%d onsubdev=%d subdevid=%d canctrl=%d deflim_mw=%d curlim_mw=%d\n",
-		   pi, onsubdev, subdevid, canctrl, deflim_mw, curlim_mw);
-	    int targetlim_mw =  curlim_mw/2;
-	    apmidg_setpwrlim(di, pi, targetlim_mw);
-	    int prevlim_mw = curlim_mw;
-	    apmidg_getpwrlim(di, pi, &curlim_mw);
-	    if (targetlim_mw == curlim_mw)
-		printf("               testing powercap: passed\n");
-	    else
-		printf("               testing powercap: failed. possibly insufficient permission or a driver problem\n");
-	    apmidg_setpwrlim(di, pi, prevlim_mw); // revert back
-
+		    printf("      pwrdom=%d onsubdev=%d subdevid=%d canctrl=%d deflim_mw=%d curlim_mw=%d\n",
+			    pi, onsubdev, subdevid, canctrl, deflim_mw, curlim_mw);
+		    int targetlim_mw =  curlim_mw/2;
+		    apmidg_setpwrlim(di, pi, targetlim_mw);
+		    int prevlim_mw = curlim_mw;
+		    apmidg_getpwrlim(di, pi, &curlim_mw);
+		    if (targetlim_mw == curlim_mw)
+			    printf("               testing powercap: passed\n");
+		    else
+			    printf("               testing powercap: failed. possibly insufficient permission or a driver problem\n");
+		    apmidg_setpwrlim(di, pi, prevlim_mw); // revert back
+	    }
 	    // test reader
 	    uint64_t energy, timestamp;
 	    double watt;
@@ -91,12 +92,12 @@ int main()
 	for (int ti=0; ti<ntempsensors; ti++) {
 	    int onsubdev, subdevid, type;
 	    double temp_C;
-	    
+
 	    apmidg_gettempprops(di, ti, &onsubdev,
 				&subdevid,  &type);
 
 	    apmidg_readtemp(di, ti, &temp_C);
-	    
+
 	    printf("      tempid=%d onsubdev=%d subdevid=%d type=%d:%s temp_C=%.1f\n",   ti, onsubdev, subdevid, type,  apmidg_sensortype_str(type), temp_C);
 
 	}

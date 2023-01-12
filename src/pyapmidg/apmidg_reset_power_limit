@@ -10,9 +10,9 @@ def resetPowerLimit(statusonly=False):
     for devid in range(0, ndevs):
         npwrdoms = pm.getnpwrdoms(devid)
         for pwrid in range(0, npwrdoms):
-            ppros = pm.getpwrprops(devid, pwrid)
-            deflim_mw = ppros.deflim_mw
-            canctrl = ppros.canctrl
+            pprops = pm.getpwrprops(devid, pwrid)
+            deflim_mw = pprops.deflim_mw
+            canctrl = pprops.canctrl
             if canctrl > 0:
                 plim_mw = pm.getpwrlim(devid, pwrid)
                 print(f'dev{devid} pwrdom{pwrid} deflim_mw={deflim_mw} old_plim_mw={plim_mw}', end='')

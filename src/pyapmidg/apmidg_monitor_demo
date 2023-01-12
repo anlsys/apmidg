@@ -89,8 +89,14 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
                 s = "%lf %lf GPU%d  " % (curt, curt - starttime, devid)
 
                 for pwrid in range(0, devnpwrdoms[devid]):
-                    plim = pm.getpwrlim(devid, pwrid)/1000.
-                    s += "%.1lf " % plim
+                    pprops = pm.getpwrprops(devid, pwrid)
+
+                    if pprops.canctrl > 0:
+                        plim = pm.getpwrlim(devid, pwrid)/1000.
+                        s += "%.1lf " % plim
+                    else :
+                        s += "NA   "
+
                     ptmp = pm.readpoweravg(devid, pwrid)
                     s += "%.1lf " % ptmp
                 s += " "
