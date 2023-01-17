@@ -7,8 +7,6 @@ set(TESTSRC "apmidgstats.c")
 
 add_executable(apmidgstats ${TESTSRC})
 
-add_executable(quick "quick.c")
-
 set_target_properties(apmidgstats PROPERTIES
         OUTPUT_NAME "apmidgstats"
         RUNTIME_OUTPUT_DIRECTORY "${BIN_DIR}" )
@@ -18,7 +16,6 @@ include_directories( "../libapmidg/" )
 set(CMAKE_EXE_LINKER_FLAGS "-lze_loader -lstdc++")
 
 target_link_libraries(apmidgstats apmidg)
-target_link_libraries(quick apmidg)
 
 install(TARGETS apmidgstats
         RUNTIME DESTINATION bin
