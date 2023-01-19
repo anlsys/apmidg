@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 
 set(PROJECT_NAME "libapmidg")
 
-set(PROJECT_VERSION 0.3.0)
+set(PROJECT_VERSION 0.4.0)
 
 project( ${PROJECT_NAME} VERSION ${PROJECT_VERSION} DESCRIPTION "libapmidg" LANGUAGES CXX)
 
