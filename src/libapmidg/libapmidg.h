@@ -7,11 +7,11 @@
 /**
  * @file libapmidg.h
  * @author Kazutomo Yoshii <kazutomo@mcs.anl.gov>
- * @date Sep 20, 2021
- * @brief A simple but sufficient C APIs for Intel discrete GPUs power management
+ * @date Jan 12, 2023
+ * @brief A simple but sufficient C API for Intel discrete GPUs power management
  *
- * While this library is internally implemented in C++, C APIs are
- * convenient or mandatory for many situations. The native C++ API
+ * While the apmidig library is implemented in C++, C API is
+ * convenient or required for many situations. The native C++ API
  * offers more flexibility than the functionality defined in this C
  * header.
  */
@@ -31,7 +31,8 @@
 /**
  * @brief Initializes the power management functionality for Intel
  * discrete GPUs
- *
+ * @param[in] verbose
+ * @return    return 0 if successful
  */
 EXTERNC int  apmidg_init(int verbose); // return 0 if successful
 
@@ -42,7 +43,8 @@ EXTERNC void apmidg_finish();
 
 
 /**
- * @brief Returns the number of available devices.
+ * @brief Returns the number of available devices (or GPUs). The
+ * device id starts with zero.
  */
 EXTERNC int  apmidg_getndevs();
 
@@ -56,29 +58,35 @@ EXTERNC int apmidg_getnpwrdoms(int devid);
 
 /**
  * @brief Returns various properties on the power domain specified by
- * 'pwrid' in the device specified by 'devid'l
+ * 'pwrid' in the device specified by 'devid'
+ * @param[out] onsubdev  indicates whether the power domain is on a subdevice.
+ * @param[out] subdevid  the subdevice id (if on a subdevice)
+ * @param[out] canctrl   indicates whether it can control the power capping
+ * @param[out] deflim_mw the default power capping in milliwatt
+ * @param[out] minlim_mw the minimum power capping in milliwatt
+ * @param[out] maxlim_mw the maximum power capping in milliwatt
  */
 EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev,
 				int *subdevid, int *canctrl, int *deflim_mw,
-
 				int *minlim_mw, int *maxlim_mw);
+
 /**
- * @brief Gets the sustained power limit.
+ * @brief Gets the sustainable power limit. The unit is milliwatt.
  */
 EXTERNC void apmidg_getpwrlim(int devid, int pwrid, int *lim_mw);
 /**
- * @brief Sets the sustained power limit.
+ * @brief Sets the sustained power limit. The unit is milliwatt.
  */
 EXTERNC void apmidg_setpwrlim(int devid, int pwrid, int lim_mw);
 
 /**
- * @brief Reads the energy counter.
+ * @brief Reads the energy counter and the time stamp. The unit is micro joule.
  */
 EXTERNC void apmidg_readenergy(int devid, int pwrid,
 			       uint64_t *enery_uj, uint64_t *ts_usec);
 
 /**
- * @brief Reads the average power
+ * @brief Reads the average power. The unit is watt.
  */
 EXTERNC double apmidg_readpoweravg(int devid, int pwrid);
 
