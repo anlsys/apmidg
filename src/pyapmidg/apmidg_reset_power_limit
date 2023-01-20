@@ -17,9 +17,6 @@ def resetPowerLimit(statusonly=False):
                 plim_mw = pm.getpwrlim(devid, pwrid)
                 print(f'dev{devid} pwrdom{pwrid} deflim_mw={deflim_mw} old_plim_mw={plim_mw}', end='')
                 if not statusonly:
-                    if deflim_mw < 0:
-                        deflim_mw = 600*1000  # if not default, set the possible max limit
-
                     pm.setpwrlim(devid, pwrid, deflim_mw)
                     new_plim_mw = pm.getpwrlim(devid, pwrid)
                     print(f' new_plim_mw={new_plim_mw}')
