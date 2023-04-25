@@ -15,7 +15,7 @@ enable_keypress = True
 #ipmisensorids = '22,23'
 ipmisensorids = '27,29,31'
 
-enabled_boardpower = True
+enabled_boardpower = False
 
 def read_boardpower_arcticus():
     nerr = 0
@@ -74,7 +74,8 @@ def set_and_monitor(pm, ndevs, fn, powercap_W=0, maxreq_MHz=0.0, timeout_sec=0, 
 #        else:
 #            childpid = pid
 
-    read_boardpower_arcticus() # the first read may take time
+    if enabled_boardpower:
+        read_boardpower_arcticus() # the first read may take time
 
     starttime = time.time()
     with open(fn, 'w') as f:
