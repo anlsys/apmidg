@@ -5,10 +5,26 @@
  */
 #include "libapmidg.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
 
-int main()
+
+int main(int argc, char *argv[])
 {
     int verbose = 1;
+    int check_capping = 0;
+    int opt;
+    while((opt=getopt(argc, argv, "cv:")) != -1 ) {
+      switch(opt) {
+      case 'v':
+	verbose = atoi(optarg);
+	break;
+      case 'c':
+	check_capping = 1;
+      break;
+      }
+    }
+
     if(apmidg_init(verbose) != 0) {
 	printf("Failed to initialize\n");
 	return 1;
@@ -45,15 +61,17 @@ int main()
 
 		    printf("      pwrdom=%d onsubdev=%d subdevid=%d canctrl=%d deflim_mw=%d curlim_mw=%d\n",
 			    pi, onsubdev, subdevid, canctrl, deflim_mw, curlim_mw);
-		    int targetlim_mw =  curlim_mw/2;
-		    apmidg_setpwrlim(di, pi, targetlim_mw);
-		    int prevlim_mw = curlim_mw;
-		    apmidg_getpwrlim(di, pi, &curlim_mw);
-		    if (targetlim_mw == curlim_mw)
-			    printf("               testing powercap: passed\n");
-		    else
-			    printf("               testing powercap: failed. possibly insufficient permission or a driver problem\n");
-		    apmidg_setpwrlim(di, pi, prevlim_mw); // revert back
+		    if (check_capping) {
+		      int targetlim_mw =  curlim_mw/2;
+		      apmidg_setpwrlim(di, pi, targetlim_mw);
+		      int prevlim_mw = curlim_mw;
+		      apmidg_getpwrlim(di, pi, &curlim_mw);
+		      if (targetlim_mw == curlim_mw)
+			printf("               testing powercap: passed\n");
+		      else
+			printf("               testing powercap: failed. possibly insufficient permission or a driver problem\n");
+		      apmidg_setpwrlim(di, pi, prevlim_mw); // revert back
+		    }
 	    }
 	    // test reader
 	    uint64_t energy, timestamp;
@@ -72,18 +90,19 @@ int main()
 	    printf("      freqdom=%d onsubdev=%d subdevid=%d canctrl=%d min_MHz=%.1f max_MHz=%.1f\n",
 		   fi, onsubdev, subdevid, canctrl, min_MHz, max_MHz);
 
-
-	    double target_min_MHz = min_MHz + 100;
-	    double target_max_MHz = max_MHz - 200;
-	    apmidg_setfreqlims(di, fi, target_min_MHz, target_max_MHz);
-	    double tmp_min_MHz, tmp_max_MHz;
-	    apmidg_getfreqlims(di, fi, &tmp_min_MHz, &tmp_max_MHz);
-	    if ((target_min_MHz==tmp_min_MHz)&&(target_max_MHz==tmp_max_MHz))
+	    if (check_capping) {
+	      double target_min_MHz = min_MHz + 100;
+	      double target_max_MHz = max_MHz - 200;
+	      apmidg_setfreqlims(di, fi, target_min_MHz, target_max_MHz);
+	      double tmp_min_MHz, tmp_max_MHz;
+	      apmidg_getfreqlims(di, fi, &tmp_min_MHz, &tmp_max_MHz);
+	      if ((target_min_MHz==tmp_min_MHz)&&(target_max_MHz==tmp_max_MHz))
 		printf("               testing freqset: passed\n");
-	    else
+	      else
 		printf("               testing freqset: failed (possibly insufficient permission or a driver problem\n");
-	    // revert back to the default
-	    apmidg_setfreqlims(di, fi, min_MHz, max_MHz);
+	      // revert back to the default
+	      apmidg_setfreqlims(di, fi, min_MHz, max_MHz);
+	    }
 
 	    double actual_MHz;
 	    apmidg_readfreq(di, fi, &actual_MHz);
