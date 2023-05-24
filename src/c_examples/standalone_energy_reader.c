@@ -15,6 +15,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#define CALL_ZEINIT (1)
+
+////////////////////////////////////////////
+
+
 #define _ZE_ERROR_MSG(NAME,RES) {fprintf(stderr,"%s() failed at %d(%s): res=%x\n",(NAME),__LINE__,__FILE__,(RES));}
 #define _ZE_ERROR_MSG_NOTERMINATE(NAME,RES) {fprintf(stderr,"%s() error at %d(%s): res=%x\n",(NAME),__LINE__,__FILE__,(RES));}
 #define _ERROR_MSG(MSG) {perror((MSG)); fprintf(stderr,"errno=%d at %d(%s)",errno,__LINE__,__FILE__);}
@@ -54,7 +59,7 @@ void  zerReadEnergy(int devid, uint64_t *ts_us, uint64_t *energy_uj)
 }
 
 // return non-zero if failed to initialize
-int zerInit(int zeInitAlreadyCalled)
+int zerInit()
 {
   ze_result_t res;
 
@@ -64,13 +69,13 @@ int zerInit(int zeInitAlreadyCalled)
 	return -1;
   }
 
-  if (!zeInitAlreadyCalled) {
-	res = zeInit(ZE_INIT_FLAG_GPU_ONLY);
-	if (res != ZE_RESULT_SUCCESS) {
-	  _ZE_ERROR_MSG("zeInit", res);
-	  return -1;
-	}
+#ifdef CALL_ZEINIT
+  res = zeInit(ZE_INIT_FLAG_GPU_ONLY);
+  if (res != ZE_RESULT_SUCCESS) {
+    _ZE_ERROR_MSG("zeInit", res);
+    return -1;
   }
+#endif
 
   /*
    * detect drivers
@@ -163,13 +168,14 @@ int zerInit(int zeInitAlreadyCalled)
 }
 
 
+/////////////////////////////////
 
 int main(int argc, char *argv[])
 {
   uint64_t ts_us;
   uint64_t energy_uj;
 
-  zerInit(0);
+  zerInit();
 
   for (int i=0; i<3; i++) {
     for  (int j=0; j<zerGetNDevs(); j++) {
