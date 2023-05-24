@@ -9,6 +9,8 @@
 #include <level_zero/ze_api.h>
 #include <level_zero/zes_api.h>
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
@@ -27,11 +29,32 @@ static ze_driver_handle_t selected_drvh;
 
 static uint32_t n_devhs;
 static ze_device_handle_t  devhs_cache[MAX_N_DEVS];
-static zes_pwr_handlet_t   mainpwrh_per_dev[MAX_N_DEVS];
+static zes_pwr_handle_t   mainpwrh_per_dev[MAX_N_DEVS]; // main power domain associated with each device
+static int canreadpwrh_per_dev[MAX_N_DEVS];
 
+
+int zerGetNDevs()
+{
+  if(!initialized) return 0;
+  return n_devhs;
+}
+
+void  zerReadEnergy(int devid, uint64_t *ts_us, uint64_t *energy_uj)
+{
+  *ts_us = 0;
+  *energy_uj = 0;
+  if (!initialized) return;
+
+  if (canreadpwrh_per_dev[devid]) {
+    zes_power_energy_counter_t ecounter;
+    zesPowerGetEnergyCounter(mainpwrh_per_dev[devid], &ecounter);
+    *ts_us = ecounter.timestamp;
+    *energy_uj = ecounter.energy;
+  }
+}
 
 // return non-zero if failed to initialize
-int initZesEnergyReader(int zeInitAlreadyCalled)
+int zerInit(int zeInitAlreadyCalled)
 {
   ze_result_t res;
 
@@ -52,18 +75,21 @@ int initZesEnergyReader(int zeInitAlreadyCalled)
   /*
    * detect drivers
    */
-  uint32_t ndrvs = 0;
-  res = zeDriverGet(&ndrvs, NULL);
-  if (res != ZE_RESULT_SUCCESS || ndrvs == 0) {
+  uint32_t n_drvs = 0;
+  res = zeDriverGet(&n_drvs, NULL);
+  if (res != ZE_RESULT_SUCCESS || n_drvs == 0) {
 	fprintf(stderr, "ERROR: No driver found!\n");
 	_ZE_ERROR_MSG("zeDriverGet", res);
 	return -1;
   }
-  ze_driver_handle_t *drvhs = (ze_driver_handlt_t*)alloca(ndrvs*sizeof(ze_driver_handle_t));
-  if (debug) printf("ndrvs=%d\n", ndrvs);
+  ze_driver_handle_t *drvhs = (ze_driver_handle_t*)alloca(n_drvs*sizeof(ze_driver_handle_t));
+  printf("n_drvs=%d\n", n_drvs);
 
-  res = zeDriverGet(&ndrv, drvhs);
-  if (res != ZE_RESULT_SUCCESS) _ZE_ERROR_MSG("2nd zeDriverGet", res);
+  res = zeDriverGet(&n_drvs, drvhs);
+  if (res != ZE_RESULT_SUCCESS) {
+    _ZE_ERROR_MSG("2nd zeDriverGet", res);
+    return -1;
+  }
 
   selected_drvh = drvhs[selected_driver_id]; // assume this is a deep-copy
 
@@ -72,7 +98,7 @@ int initZesEnergyReader(int zeInitAlreadyCalled)
    */
   n_devhs = 0;
   res = zeDeviceGet(selected_drvh, &n_devhs, NULL);
-  if (res != ZE_RESULT_SUCCESS || ndevhs == 0) {
+  if (res != ZE_RESULT_SUCCESS || n_devhs == 0) {
 	fprintf(stderr, "ERROR: No device found!\n");
 	_ZE_ERROR_MSG("zeDeviceGet", res);
 	return -1;
@@ -90,45 +116,46 @@ int initZesEnergyReader(int zeInitAlreadyCalled)
 
   // iterate devices to find power domains associated with each device
   for (int i=0; i<n_devhs; i++) {
-	ze_device_properties_t props = {0};
+    canreadpwrh_per_dev[i] = 0;
+
+    ze_device_properties_t props = {0};
     props.stype = ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES;
     props.pNext = NULL;
-	res = zeDeviceGetProperties(devhs_cache[i], &props);
-	if (res != ZE_RESULT_SUCCESS) {
-	  _ZE_ERROR_MSG("zeDeviceGetProperties", res);
-	  return -1;
-	}
-	if (devprop.type == ZE_DEVICE_TYPE_GPU) {
-	  zes_device_handle_t smh = smh = (zes_device_handle_t)devhs_cache[i];
-	  zes_pwr_handle_t pwrhs[MAX_N_PDOMS];
-	  uint32_t npwrdoms = 0;
+    res = zeDeviceGetProperties(devhs_cache[i], &props);
+    if (res != ZE_RESULT_SUCCESS) {
+      _ZE_ERROR_MSG("zeDeviceGetProperties", res);
+      return -1;
+    }
+    if (props.type == ZE_DEVICE_TYPE_GPU) {
+      zes_device_handle_t smh = smh = (zes_device_handle_t)devhs_cache[i];
+      zes_pwr_handle_t pwrhs[MAX_N_PDOMS];
+      uint32_t npwrdoms = 0;
 
-	  res = zesDeviceEnumPowerDomains(smh, &npwrdoms, NULL);
+      res = zesDeviceEnumPowerDomains(smh, &npwrdoms, NULL);
+      if (res != ZE_RESULT_SUCCESS) {
+	_ZE_ERROR_MSG("zesDeviceEnumPowerDomains", res);
+      } else {
+	if (npwrdoms > 0 && npwrdoms <= MAX_N_PDOMS) {
+	  res = zesDeviceEnumPowerDomains(smh, &npwrdoms, pwrhs);
 	  if (res != ZE_RESULT_SUCCESS) {
-		_ZE_ERROR_MSG("zesDeviceEnumPowerDomains", res);
-		mainpwrh_per_dev[i] = {0};
-	  } else {
-		if (npwrdoms > 0 && npwrdoms <= N_MAX_PDOMS) {
-		  res = zesDeviceEnumPowerDomains(smh, &npwrdoms, pwrhs);
-		  if (res != ZE_RESULT_SUCCESS) {
-			_ZE_ERROR_MSG("zesDeviceEnumPowerDomains", res);
-			return -;1
+	    _ZE_ERROR_MSG("zesDeviceEnumPowerDomains", res);
+	    return -1;
 					   }
-		  mainpwrh_per_dev[i] = pwrhs[0];
-
-		  zes_power_energy_counter_t ecounter;
-		  res = zesPowerGetEnergyCounter(mainpwrh_per_dev[i], &ecounter);
-		  if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetEnergyCounter", res);
-		  printf("%lf us  %lf uj\n", ecounter.timestamp, ecounter.energy);
-
-		} else {
-		  fprintf(stderr, "Warning: npwrdoms=%d\n", npwrdoms);
-		}
+	  mainpwrh_per_dev[i] = pwrhs[0];
+	  canreadpwrh_per_dev[i] = 1;
+	  if(0) {
+	    zes_power_energy_counter_t ecounter;
+	    res = zesPowerGetEnergyCounter(mainpwrh_per_dev[i], &ecounter);
+	    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetEnergyCounter", res);
+	    printf("%lu us  %lu uj\n", ecounter.timestamp, ecounter.energy);
 	  }
 	} else {
-	  fprintf(stderr, "Warning: dev%d is not a GPU!\n");
-	  mainpwrh_per_dev[i] = {0};
+	  fprintf(stderr, "Warning: npwrdoms=%d\n", npwrdoms);
 	}
+      }
+    } else {
+      fprintf(stderr, "Warning: dev%d is not a GPU!\n", i);
+    }
   }
 
   initialized = 1;
@@ -136,12 +163,21 @@ int initZesEnergyReader(int zeInitAlreadyCalled)
 }
 
 
-#ifdef TEST_MAIN_DEFINED
+
 int main(int argc, char *argv[])
 {
-  init_ereader(0);
+  uint64_t ts_us;
+  uint64_t energy_uj;
+
+  zerInit(0);
+
+  for (int i=0; i<3; i++) {
+    for  (int j=0; j<zerGetNDevs(); j++) {
+      zerReadEnergy(j, &ts_us, &energy_uj);
+      printf("dev%d ts_us=%lu energy_uj=%lu\n", j, ts_us, energy_uj);
+    }
+    sleep(1);
+  }
 
   return 0;
 }
-
-#endif
