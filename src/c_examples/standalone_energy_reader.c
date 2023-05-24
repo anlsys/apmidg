@@ -120,7 +120,7 @@ int zerInit()
   }
 
   // iterate devices to find power domains associated with each device
-  for (int i=0; i<n_devhs; i++) {
+  for (uint32_t i=0; i<n_devhs; i++) {
     canreadpwrh_per_dev[i] = 0;
 
     ze_device_properties_t props = {0};
