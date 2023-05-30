@@ -345,55 +345,6 @@ EXTERNC int apmidg_getnpwrdoms(int devid) {
     return perdev.getnpwrdoms();
 }
 
-#if 0
-// tentative
-static void __apmidg_getpwrdeflim(int devid, int pwrid, int *deflim_mw) {// sustained only
-    if (deflim_mw) *deflim_mw = -1;
-    if (!apmidg) return;
-
-    ze_result_t res;
-    IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
-    if (!perdev.is_powerlimit_available()) return;
-    zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
-    const int maxpCount = 10;
-    zes_power_limit_ext_desc_t pSustained[maxpCount];
-    uint32_t pCount;
-    pCount = 0;
-    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
-    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimitsExt", res);
-    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
-    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimitsExt", res);
-
-    if (pCount > maxpCount) {
-	pCount = maxpCount;
-	std::cout << "Warning: pCount is reset to " << pCount << std::endl;
-    }
-
-    int deflim_mw_queried = -1;
-
-    for (int j=0; j<pCount; j++) {
-	zes_power_limit_ext_desc_t *p;
-	p = pSustained + j;
-
-	if (p->level == ZES_POWER_LEVEL_SUSTAINED) {
-	  // lim_mw_queried = p->limit;
-	  zes_power_ext_properties_t *ep = (zes_power_ext_properties_t *)p->pNext;
-	  if (ep) {
-	    deflim_mw_queried = ep->defaultLimit->limit;
-	  } else {
-	      std::cout << "No pNext!!\n";
-	  }
-	}
-    }
-
-    if (deflim_mw && deflim_mw_queried > 0) {
-	*deflim_mw = deflim_mw_queried;
-    } else {
-	std::cout << "Warning: apmidg_getpwrdeflim found no target power level." << std::endl;
-    }
-}
-#endif
-
 EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdevid, int *canctrl, int *deflim_mw, int *minlim_mw, int *maxlim_mw) {
 
     if (onsubdev) *onsubdev = -1;
@@ -406,29 +357,32 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
     if (!apmidg) return;
 
     ze_result_t res;
-    zes_power_properties_t pprop = {};
-    // remove this later if not correct way
-    zes_power_ext_properties_t extProperties = {};
-    zes_power_limit_ext_desc_t defaultLimit = {};
-    extProperties.stype = ZES_STRUCTURE_TYPE_POWER_EXT_PROPERTIES;
-    pprop.pNext = &extProperties;
-    //
 
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
+    zes_power_properties_t pprop = {};
+    zes_power_ext_properties_t extprop = {};
+    zes_power_limit_ext_desc_t deflim = {};
+    extprop.stype = ZES_STRUCTURE_TYPE_POWER_EXT_PROPERTIES;
+    extprop.defaultLimit = &deflim;
+    pprop.pNext = &extprop;
     res = zesPowerGetProperties(pwrh, &pprop);
     if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetProperties", res);
-
-    // defaultLimit.limit
 
     if (onsubdev) *onsubdev = (int)pprop.onSubdevice;
     if (subdevid) *subdevid = (int)pprop.subdeviceId;
     if (canctrl)  *canctrl = (int)pprop.canControl;
-    if (deflim_mw) *deflim_mw = (int)pprop.defaultLimit; // deprecated
-    if (minlim_mw) *minlim_mw = (int)pprop.minLimit; // deprecated
-    if (maxlim_mw) *maxlim_mw = (int)pprop.maxLimit; // deprecated
+    if (0) {
+	if (deflim_mw) *deflim_mw = (int)pprop.defaultLimit; // deprecated
+	if (minlim_mw) *minlim_mw = (int)pprop.minLimit; // deprecated
+	if (maxlim_mw) *maxlim_mw = (int)pprop.maxLimit; // deprecated
+    }
+    if (deflim_mw) *deflim_mw = (int)deflim.limit;
+    if (minlim_mw) *minlim_mw = (int)-1; // doesn't look like there is an API to retrieve minlim
+    if (maxlim_mw) *maxlim_mw = (int)deflim.limit;
 
+#if 0
     // Workaround. L0 sets defaultLimit, mixLimit, and maxLimt -1 (looks like deprecated)
     // minLimt may not be available (depends on sysfs entried created by the hwmon driver)
     // Remove this later once an alternative way to read deflim and maxlim is implemented
@@ -455,6 +409,7 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
 	    msgdisplayed = true;
 	}
     }
+#endif
 }
 
 static void prlevel(int level) {
