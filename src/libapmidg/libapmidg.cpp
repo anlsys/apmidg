@@ -344,6 +344,55 @@ EXTERNC int apmidg_getnpwrdoms(int devid) {
     return perdev.getnpwrdoms();
 }
 
+#if 0
+// tentative
+static void __apmidg_getpwrdeflim(int devid, int pwrid, int *deflim_mw) {// sustained only
+    if (deflim_mw) *deflim_mw = -1;
+    if (!apmidg) return;
+
+    ze_result_t res;
+    IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
+    if (!perdev.is_powerlimit_available()) return;
+    zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
+    const int maxpCount = 10;
+    zes_power_limit_ext_desc_t pSustained[maxpCount];
+    uint32_t pCount;
+    pCount = 0;
+    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
+    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimitsExt", res);
+    res = zesPowerGetLimitsExt(pwrh, &pCount, pSustained);
+    if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetLimitsExt", res);
+
+    if (pCount > maxpCount) {
+	pCount = maxpCount;
+	std::cout << "Warning: pCount is reset to " << pCount << std::endl;
+    }
+
+    int deflim_mw_queried = -1;
+
+    for (int j=0; j<pCount; j++) {
+	zes_power_limit_ext_desc_t *p;
+	p = pSustained + j;
+
+	if (p->level == ZES_POWER_LEVEL_SUSTAINED) {
+	  // lim_mw_queried = p->limit;
+	  zes_power_ext_properties_t *ep = (zes_power_ext_properties_t *)p->pNext;
+	  if (ep) {
+	    deflim_mw_queried = ep->defaultLimit->limit;
+	  } else {
+	      std::cout << "No pNext!!\n";
+	  }
+	}
+    }
+
+    if (deflim_mw && deflim_mw_queried > 0) {
+	*deflim_mw = deflim_mw_queried;
+    } else {
+	std::cout << "Warning: apmidg_getpwrdeflim found no target power level." << std::endl;
+    }
+}
+#endif
+
 EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdevid, int *canctrl, int *deflim_mw, int *minlim_mw, int *maxlim_mw) {
 
     if (onsubdev) *onsubdev = -1;
@@ -357,34 +406,44 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
 
     ze_result_t res;
     zes_power_properties_t pprop = {};
+    // remove this later if not correct way
+    zes_power_ext_properties_t extProperties = {};
+    zes_power_limit_ext_desc_t defaultLimit = {};
+    extProperties.stype = ZES_STRUCTURE_TYPE_POWER_EXT_PROPERTIES;
+    pprop.pNext = &extProperties;
+    //
+
     IDGPowerPerDevice perdev = apmidg->getIDGPowerPerDevice(devid);
     zes_pwr_handle_t pwrh = perdev.getpwrh(pwrid);
 
     res = zesPowerGetProperties(pwrh, &pprop);
     if (res != ZE_RESULT_SUCCESS)  _ZE_ERROR_MSG_NOTERMINATE("zesPowerGetProperties", res);
 
+    // defaultLimit.limit
+
     if (onsubdev) *onsubdev = (int)pprop.onSubdevice;
     if (subdevid) *subdevid = (int)pprop.subdeviceId;
     if (canctrl)  *canctrl = (int)pprop.canControl;
-    if (deflim_mw) *deflim_mw = (int)pprop.defaultLimit;
-    if (minlim_mw) *minlim_mw = (int)pprop.minLimit;
-    if (maxlim_mw) *maxlim_mw = (int)pprop.maxLimit;
+    if (deflim_mw) *deflim_mw = (int)pprop.defaultLimit; // deprecated
+    if (minlim_mw) *minlim_mw = (int)pprop.minLimit; // deprecated
+    if (maxlim_mw) *maxlim_mw = (int)pprop.maxLimit; // deprecated
 
-    //
     // Workaround. L0 sets defaultLimit -1 (reading a wrong sysfs file)
     // Remove this later once L0 is fixed!
     static bool msgdisplayed = false;
     std::string buf;
     std::fstream fs;
     int workaround_maxlimit=-1;
-    fs.open("/sys/class/drm/card0/device/hwmon/hwmon1/power1_max_default", std::ios::in);
+    fs.open("/sys/class/drm/card0/device/hwmon/hwmon3/power1_max", std::ios::in);
+    // fs.open("/sys/class/drm/card0/device/hwmon/hwmon1/power1_max_default", std::ios::in);
     if (fs) {
-	fs >> buf;
+        fs >> buf;
 	fs.close();
 	workaround_maxlimit = stoi(buf) / 1000; // uw to mw
     }
     if (canctrl>0 && (int)pprop.defaultLimit == -1 && workaround_maxlimit > 0) {
 	if (deflim_mw) *deflim_mw = workaround_maxlimit;
+	if (maxlim_mw) *maxlim_mw = workaround_maxlimit;
 	if (!msgdisplayed) {
 	    std::cout << "apmidg_getpwrprops: deflim_mw workaround applied" << std::endl;
 	    msgdisplayed = true;
