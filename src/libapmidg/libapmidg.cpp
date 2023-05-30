@@ -429,8 +429,9 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
     if (minlim_mw) *minlim_mw = (int)pprop.minLimit; // deprecated
     if (maxlim_mw) *maxlim_mw = (int)pprop.maxLimit; // deprecated
 
-    // Workaround. L0 sets defaultLimit -1 (reading a wrong sysfs file)
-    // Remove this later once L0 is fixed!
+    // Workaround. L0 sets defaultLimit, mixLimit, and maxLimt -1 (looks like deprecated)
+    // minLimt may not be available (depends on sysfs entried created by the hwmon driver)
+    // Remove this later once an alternative way to read deflim and maxlim is implemented
     static bool msgdisplayed = false;
     std::string buf;
     std::fstream fs;
