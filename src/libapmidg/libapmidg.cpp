@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
+#include <cstdio>
 
 #define _ZE_ERROR_MSG(NAME,RES) {printf("%s() failed at %d(%s): res=%x:%s\n",(NAME),__LINE__,__FILE__,(RES),str_ze_result_t(RES)); std::terminate();}
 #define _ZE_ERROR_MSG_NOTERMINATE(NAME,RES) {printf("%s() error at %d(%s): res=%x:%s\n",(NAME),__LINE__,__FILE__,(RES),str_ze_result_t(RES));}
@@ -434,12 +435,16 @@ EXTERNC void apmidg_getpwrprops(int devid, int pwrid, int *onsubdev, int *subdev
     std::string buf;
     std::fstream fs;
     int workaround_maxlimit=-1;
-    fs.open("/sys/class/drm/card0/device/hwmon/hwmon3/power1_max", std::ios::in);
-    // fs.open("/sys/class/drm/card0/device/hwmon/hwmon1/power1_max_default", std::ios::in);
-    if (fs) {
-        fs >> buf;
-	fs.close();
-	workaround_maxlimit = stoi(buf) / 1000; // uw to mw
+    for (int id=0; id<8; id++) {
+	char fn[100];
+	std::snprintf(fn, sizeof(fn), "/sys/class/drm/card0/device/hwmon/hwmon%d/power1_rated_max", id);
+	fs.open(fn, std::ios::in);
+	if (fs) {
+	    fs >> buf;
+	    fs.close();
+	    workaround_maxlimit = stoi(buf) / 1000; // uw to mw
+	    break;
+	}
     }
     if (canctrl>0 && (int)pprop.defaultLimit == -1 && workaround_maxlimit > 0) {
 	if (deflim_mw) *deflim_mw = workaround_maxlimit;
