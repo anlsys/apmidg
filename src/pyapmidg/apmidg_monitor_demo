@@ -9,7 +9,7 @@ import clr_rapl
 import keypress
 import platform
 
-enable_keypress = True
+enable_keypress = False
 
 # define ipmi sensor ids here
 #ipmisensorids = '22,23'
